@@ -52,12 +52,12 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-background p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">CyanStack</h1>
+            <h1 className="text-3xl font-bold text-foreground">CyanStack</h1>
             <p className="text-muted-foreground">Visual orchestration made simple</p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)}>
@@ -96,15 +96,14 @@ export function Dashboard() {
               <Card
                 key={project.id}
                 onClick={() => navigate(`/project/${project.id}`)}
-                className="cursor-pointer hover:shadow-md transition-shadow group"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg truncate">
+                      <CardTitle className="text-lg truncate text-card-foreground">
                         {project.name}
                       </CardTitle>
-                      <CardDescription className="mt-1">
+                      <CardDescription className="mt-1 text-muted-foreground">
                         Created{' '}
                         {new Date(project.created_at).toLocaleDateString()}
                       </CardDescription>
@@ -112,7 +111,7 @@ export function Dashboard() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-muted-foreground hover:text-destructive transition-colors"
                       onClick={(e) => handleDelete(project.id, e)}
                       disabled={deletingId === project.id}
                     >

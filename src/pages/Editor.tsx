@@ -12,13 +12,13 @@ import '@xyflow/react/dist/style.css';
 import { PluginNode } from '@/components/graph/PluginNode';
 import { NodeInspector } from '@/components/graph/NodeInspector';
 import { CommandPalette } from '@/components/dialogs/CommandPalette';
-import { FloatingBar } from '@/components/layout/FloatingBar';
+import { EditorLeftPanel, EditorRightPanel } from '@/components/layout/FloatingBar';
 import { AddNodeMenu } from '@/components/layout/AddNodeMenu';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { useCanvasStore, useTemporalStore } from '@/store/canvasStore';
 import { useUIStore } from '@/store/uiStore';
-import { useThemeStore } from '@/store/themeStore';
+
 import { useDeploymentEvents } from '@/hooks/useDeploymentEvents';
 
 import { revisionsApi } from '@/api/revisions';
@@ -60,7 +60,7 @@ export function Editor() {
   const clearNodeStatuses = useUIStore((s) => s.clearNodeStatuses);
 
   // Theme
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme());
+
 
   // WebSocket for deployment events
   useDeploymentEvents(projectId || '', isDeploying);
@@ -225,7 +225,7 @@ export function Editor() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Skeleton className="h-8 w-48 mx-auto mb-4" />
           <Skeleton className="h-4 w-32 mx-auto" />
@@ -235,7 +235,7 @@ export function Editor() {
   }
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen bg-background">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -246,29 +246,36 @@ export function Editor() {
         isValidConnection={handleIsValidConnection}
         fitView
         proOptions={{ hideAttribution: true }}
-        className={resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}
+        className="bg-background"
       >
-        <Background color={resolvedTheme === 'dark' ? '#374151' : '#e5e7eb'} />
-        <Controls className="dark:bg-gray-800 dark:border-gray-700" />
+        <Background color="var(--graph-pattern-color)" />
+        <Controls className="bg-card border-border [&>button]:bg-card [&>button]:border-border [&>button]:text-muted-foreground [&>button:hover]:bg-muted [&>button_svg]:fill-foreground" />
 
-        {/* Top Left - Floating Bar */}
+        {/* Top Left - Project Info & Navigation */}
         <Panel position="top-left">
-          <FloatingBar
+          <EditorLeftPanel
             projectId={projectId || ''}
             projectName={projectName}
+            isDirty={isDirty}
+            onBack={() => navigate('/')}
+            onLoadRevision={handleLoadRevision}
+            onLoadLatest={handleLoadLatest}
+          />
+        </Panel>
+
+        {/* Top Right - Actions & Utilities */}
+        <Panel position="top-right">
+          <EditorRightPanel
             isDirty={isDirty}
             isSaving={isSaving}
             isDeploying={isDeploying}
             canUndo={canUndo}
             canRedo={canRedo}
-            onBack={() => navigate('/')}
             onSave={handleSave}
             onDeploy={handleDeploy}
             onStop={handleStop}
             onUndo={handleUndo}
             onRedo={handleRedo}
-            onLoadRevision={handleLoadRevision}
-            onLoadLatest={handleLoadLatest}
           />
         </Panel>
 

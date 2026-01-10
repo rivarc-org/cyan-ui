@@ -80,23 +80,23 @@ export function SecureInput({ value, onChange, placeholder }: SecureInputProps) 
         placeholder={placeholder}
         disabled={isEncrypting}
         className={cn(
-          'nodrag w-full px-2 py-1 pr-16 text-sm border rounded',
-          'focus:outline-none focus:ring-1 focus:ring-blue-500',
-          isEncrypted ? 'border-green-300 bg-green-50' : 'border-gray-200',
+          'nodrag w-full px-2 py-1 pr-16 text-sm border rounded bg-background text-foreground',
+          'focus:outline-none focus:ring-1 focus:ring-primary',
+          isEncrypted ? 'border-primary/50 text-primary' : 'border-input',
           isEncrypting && 'opacity-50'
         )}
       />
       <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
         {isEncrypted && (
-          <Lock className="w-3 h-3 text-green-600" />
+          <Lock className="w-3 h-3 text-primary" />
         )}
         {isEncrypting || isDecrypting ? (
-          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
         ) : (
           <button
             type="button"
             onClick={handleToggleVisibility}
-            className="p-0.5 text-gray-400 hover:text-gray-600"
+            className="p-0.5 text-muted-foreground hover:text-foreground"
           >
             {isVisible ? (
               <EyeOff className="w-4 h-4" />

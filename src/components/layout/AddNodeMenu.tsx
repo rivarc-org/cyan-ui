@@ -27,7 +27,7 @@ export function AddNodeMenu() {
       <Button
         variant="outline"
         onClick={() => setIsExternalDialogOpen(true)}
-        className="rounded-full w-12 h-12 shadow-lg bg-white dark:bg-gray-800"
+        className="rounded-full w-12 h-12 shadow-lg bg-popover"
         title="Add external service"
       >
         <Box className="w-5 h-5" />

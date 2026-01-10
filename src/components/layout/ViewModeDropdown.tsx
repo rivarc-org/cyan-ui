@@ -98,10 +98,10 @@ export function ViewModeDropdown({
         <Button
           variant="ghost"
           size="sm"
-          className="bg-white/90 dark:bg-gray-800/90 shadow-sm gap-2"
+          className="bg-popover/90 shadow-sm gap-2 backdrop-blur-sm border border-border/50"
         >
           {getModeIcon(viewMode, isDirty)}
-          <span className="font-medium">{getModeLabel(viewMode, isDirty)}</span>
+          <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty)}</span>
           <ChevronDown className="w-4 h-4 text-gray-400" />
         </Button>
       </DropdownMenuTrigger>
@@ -142,8 +142,8 @@ export function ViewModeDropdown({
               onClick={() => handleSelectRevision(rev)}
               className={cn(
                 viewMode.type === 'revision' &&
-                  viewMode.revisionId === rev.id &&
-                  'bg-gray-100 dark:bg-gray-800'
+                viewMode.revisionId === rev.id &&
+                'bg-accent'
               )}
             >
               <History className="w-4 h-4 mr-2 text-gray-400" />

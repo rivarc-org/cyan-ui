@@ -20,7 +20,7 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="sm"
-          className="bg-white/90 dark:bg-gray-800/90 shadow-sm"
+          className="bg-popover/90 shadow-sm backdrop-blur-sm border border-border/50 hover:bg-accent hover:text-accent-foreground"
         >
           <Icon className="w-4 h-4" />
         </Button>
