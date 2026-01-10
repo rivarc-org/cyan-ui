@@ -25,7 +25,7 @@ export function ToolbarGroup({ className, children, ...props }: ToolbarGroupProp
     return (
         <div
             className={cn(
-                'flex items-center bg-popover/90 shadow-sm rounded-md backdrop-blur-sm border border-border/50 overflow-hidden',
+                'flex items-center bg-popover/60 shadow-sm rounded-xl backdrop-blur-md border border-border/50 overflow-hidden',
                 className
             )}
             {...props}
@@ -47,7 +47,7 @@ export const ToolbarItem = React.forwardRef<HTMLButtonElement, ToolbarItemProps>
                 variant={variant}
                 size={size}
                 className={cn(
-                    'rounded-none h-8 px-3 hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground focus-visible:z-10',
+                    'rounded-none h-12 px-5 min-w-12 hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground focus-visible:z-10',
                     active && 'bg-accent text-accent-foreground',
                     className
                 )}
@@ -61,7 +61,7 @@ ToolbarItem.displayName = 'ToolbarItem';
 export function ToolbarLabel({ className, children, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
     return (
         <span
-            className={cn('px-3 h-8 flex items-center text-sm font-medium text-popover-foreground', className)}
+            className={cn('px-5 h-12 flex items-center min-w-12 text-base font-medium text-popover-foreground', className)}
             {...props}
         >
             {children}
@@ -72,7 +72,7 @@ export function ToolbarLabel({ className, children, ...props }: React.HTMLAttrib
 export function ToolbarSeparator({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
     return (
         <div
-            className={cn('w-[1px] bg-border/50 h-5 my-1.5', className)}
+            className={cn('w-[1px] bg-border/50 h-8 my-1.5', className)}
             {...props}
         />
     );

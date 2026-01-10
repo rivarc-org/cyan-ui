@@ -1,6 +1,6 @@
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useThemeStore } from '@/store/themeStore';
-import { Button } from '@/components/ui/button';
+import { ToolbarItem } from '@/components/layout/EditorToolbar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +17,9 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="bg-popover/90 shadow-sm backdrop-blur-sm border border-border/50 hover:bg-accent hover:text-accent-foreground"
-        >
-          <Icon className="w-4 h-4" />
-        </Button>
+        <ToolbarItem title="Change theme">
+          <Icon className="w-6 h-6" />
+        </ToolbarItem>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme('light')}>

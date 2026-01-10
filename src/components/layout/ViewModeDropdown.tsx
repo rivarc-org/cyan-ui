@@ -43,12 +43,12 @@ function getModeLabel(mode: ViewMode, isDirty: boolean): string {
 
 function getModeIcon(mode: ViewMode, isDirty: boolean) {
   if (mode.type === 'live' && !isDirty) {
-    return <Radio className="w-4 h-4 text-green-500" />;
+    return <Radio className="w-6 h-6 text-green-500" />;
   }
   if (mode.type === 'draft' || isDirty) {
-    return <Edit3 className="w-4 h-4 text-orange-500" />;
+    return <Edit3 className="w-6 h-6 text-orange-500" />;
   }
-  return <History className="w-4 h-4 text-gray-500" />;
+  return <History className="w-6 h-6 text-gray-500" />;
 }
 
 export function ViewModeDropdown({
@@ -98,12 +98,12 @@ export function ViewModeDropdown({
         <ToolbarItem className="gap-2">
           {getModeIcon(viewMode, isDirty)}
           <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty)}</span>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-6 h-6 text-gray-400" />
         </ToolbarItem>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem onClick={handleSelectLive}>
-          <Radio className="w-4 h-4 mr-2 text-green-500" />
+          <Radio className="w-6 h-6 mr-2 text-green-500" />
           <span>Live</span>
           {viewMode.type === 'live' && !isDirty && (
             <span className="ml-auto text-xs text-gray-400">current</span>
@@ -112,7 +112,7 @@ export function ViewModeDropdown({
 
         {isDirty && (
           <DropdownMenuItem disabled>
-            <Edit3 className="w-4 h-4 mr-2 text-orange-500" />
+            <Edit3 className="w-6 h-6 mr-2 text-orange-500" />
             <span>Draft</span>
             <span className="ml-auto text-xs text-gray-400">unsaved</span>
           </DropdownMenuItem>
@@ -142,7 +142,7 @@ export function ViewModeDropdown({
                 'bg-accent'
               )}
             >
-              <History className="w-4 h-4 mr-2 text-gray-400" />
+              <History className="w-6 h-6 mr-2 text-gray-400" />
               <span>v{rev.version_number}</span>
               <span className="ml-auto text-xs text-gray-400">
                 {formatDate(rev.created_at)}

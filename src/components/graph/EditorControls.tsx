@@ -27,25 +27,25 @@ export function EditorControls() {
 
     return (
         <Toolbar className="flex-col">
-            <ToolbarGroup className="flex-col w-8">
+            <ToolbarGroup className="flex-col w-12">
                 <ToolbarItem
                     onClick={handleZoomIn}
                     disabled={!canZoomIn}
                     title="Zoom In"
                 >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-6 h-6" />
                 </ToolbarItem>
-                <ToolbarSeparator className="w-5 h-[1px] my-0.5" />
+                <ToolbarSeparator className="w-8 h-[1px] my-0.5" />
                 <ToolbarItem
                     onClick={handleZoomOut}
                     disabled={!canZoomOut}
                     title="Zoom Out"
                 >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-6 h-6" />
                 </ToolbarItem>
-                <ToolbarSeparator className="w-5 h-[1px] my-0.5" />
+                <ToolbarSeparator className="w-8 h-[1px] my-0.5" />
                 <ToolbarItem onClick={handleFitView} title="Fit View">
-                    <Maximize className="w-4 h-4" />
+                    <Maximize className="w-6 h-6" />
                 </ToolbarItem>
             </ToolbarGroup>
         </Toolbar>

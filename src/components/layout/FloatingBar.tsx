@@ -62,7 +62,7 @@ export function EditorLeftPanel({
     <Toolbar>
       <ToolbarGroup>
         <ToolbarItem onClick={onBack} title="Back to dashboard">
-          <ChevronLeft className="w-4 h-4 mr-1" />
+          <ChevronLeft className="w-6 h-6 mr-1" />
           Back
         </ToolbarItem>
       </ToolbarGroup>
@@ -80,7 +80,7 @@ export function EditorLeftPanel({
 
       <ToolbarGroup>
         <ToolbarItem onClick={handleCopy} title="Copy graph JSON to clipboard">
-          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          {copied ? <Check className="w-6 h-6 text-green-500" /> : <Copy className="w-6 h-6" />}
         </ToolbarItem>
       </ToolbarGroup>
 
@@ -112,7 +112,7 @@ export function EditorRightPanel({
           disabled={!canUndo}
           title="Undo (Cmd+Z)"
         >
-          <Undo2 className="w-4 h-4" />
+          <Undo2 className="w-6 h-6" />
         </ToolbarItem>
         <ToolbarSeparator />
         <ToolbarItem
@@ -120,7 +120,7 @@ export function EditorRightPanel({
           disabled={!canRedo}
           title="Redo (Cmd+Shift+Z)"
         >
-          <Redo2 className="w-4 h-4" />
+          <Redo2 className="w-6 h-6" />
         </ToolbarItem>
       </ToolbarGroup>
 
@@ -131,9 +131,9 @@ export function EditorRightPanel({
           title="Save (Cmd+S)"
         >
           {isSaving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            <Save className="w-4 h-4" />
+            <Save className="w-6 h-6" />
           )}
         </ToolbarItem>
         <ToolbarSeparator />
@@ -143,7 +143,7 @@ export function EditorRightPanel({
             className="text-destructive hover:bg-destructive/10"
             title="Stop deployment"
           >
-            <Square className="w-4 h-4" />
+            <Square className="w-6 h-6" />
           </ToolbarItem>
         ) : (
           <ToolbarItem
@@ -155,9 +155,9 @@ export function EditorRightPanel({
             title="Deploy"
           >
             {isDeploying ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              <Play className="w-4 h-4" />
+              <Play className="w-6 h-6" />
             )}
           </ToolbarItem>
         )}
