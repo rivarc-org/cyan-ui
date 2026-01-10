@@ -10,13 +10,13 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
+import { Toolbar, ToolbarGroup, ToolbarItem, ToolbarLabel, ToolbarSeparator } from '@/components/layout/EditorToolbar';
 import { cn } from '@/lib/utils';
 import { useCanvasStore } from '@/store/canvasStore';
 import { flowToBackend } from '@/lib/transformers';
-import { useUIStore } from '@/store/uiStore';
+
 
 interface FloatingBarProps {
   projectId: string;
@@ -46,7 +46,6 @@ export function EditorLeftPanel({
   onLoadLatest,
   onBack,
 }: Pick<FloatingBarProps, 'projectId' | 'projectName' | 'isDirty' | 'onLoadRevision' | 'onLoadLatest' | 'onBack'>) {
-  const viewMode = useUIStore((s) => s.viewMode);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -60,49 +59,35 @@ export function EditorLeftPanel({
   }, []);
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onBack}
-        className="bg-popover/90 shadow-sm hover:bg-accent hover:text-accent-foreground backdrop-blur-sm"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back
-      </Button>
+    <Toolbar>
+      <ToolbarGroup>
+        <ToolbarItem onClick={onBack} title="Back to dashboard">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back
+        </ToolbarItem>
+      </ToolbarGroup>
 
-      {/* Project Name */}
-      <div className="bg-popover/90 shadow-sm rounded-md px-4 py-2 flex items-center gap-2 backdrop-blur-sm border border-border/50">
-        <span className="font-medium text-sm text-popover-foreground">{projectName}</span>
-      </div>
+      <ToolbarGroup>
+        <ToolbarLabel>{projectName}</ToolbarLabel>
+        <ToolbarSeparator />
+        <ViewModeDropdown
+          projectId={projectId}
+          isDirty={isDirty}
+          onLoadRevision={onLoadRevision}
+          onLoadLatest={onLoadLatest}
+        />
+      </ToolbarGroup>
 
-      {/* View Mode Dropdown */}
-      <ViewModeDropdown
-        projectId={projectId}
-        isDirty={isDirty}
-        onLoadRevision={onLoadRevision}
-        onLoadLatest={onLoadLatest}
-      />
+      <ToolbarGroup>
+        <ToolbarItem onClick={handleCopy} title="Copy graph JSON to clipboard">
+          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+        </ToolbarItem>
+      </ToolbarGroup>
 
-      {/* Copy JSON Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleCopy}
-        className="bg-popover/90 shadow-sm hover:bg-accent hover:text-accent-foreground backdrop-blur-sm"
-        title="Copy graph JSON to clipboard"
-      >
-        {copied ? (
-          <Check className="w-4 h-4 text-green-500" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
-      </Button>
-
-      {/* Theme Toggle */}
-      <ThemeToggle />
-    </div>
+      <ToolbarGroup>
+        <ThemeToggle />
+      </ToolbarGroup>
+    </Toolbar>
   );
 }
 
@@ -120,38 +105,29 @@ export function EditorRightPanel({
 }: Omit<FloatingBarProps, 'projectId' | 'projectName' | 'onBack' | 'onLoadRevision' | 'onLoadLatest'>) {
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Actions */}
-      <div className="bg-popover/90 shadow-sm rounded-md flex items-center backdrop-blur-sm border border-border/50">
-        {/* Undo/Redo */}
-        <Button
-          variant="ghost"
-          size="sm"
+    <Toolbar>
+      <ToolbarGroup>
+        <ToolbarItem
           onClick={onUndo}
           disabled={!canUndo}
-          className="rounded-r-none"
           title="Undo (Cmd+Z)"
         >
           <Undo2 className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
+        </ToolbarItem>
+        <ToolbarSeparator />
+        <ToolbarItem
           onClick={onRedo}
           disabled={!canRedo}
-          className="rounded-none border-l border-border hover:bg-accent hover:text-accent-foreground"
           title="Redo (Cmd+Shift+Z)"
         >
           <Redo2 className="w-4 h-4" />
-        </Button>
+        </ToolbarItem>
+      </ToolbarGroup>
 
-        {/* Save */}
-        <Button
-          variant="ghost"
-          size="sm"
+      <ToolbarGroup>
+        <ToolbarItem
           onClick={onSave}
           disabled={isSaving || !isDirty}
-          className="rounded-none border-l border-border hover:bg-accent hover:text-accent-foreground"
           title="Save (Cmd+S)"
         >
           {isSaving ? (
@@ -159,27 +135,21 @@ export function EditorRightPanel({
           ) : (
             <Save className="w-4 h-4" />
           )}
-        </Button>
-
-        {/* Deploy/Stop */}
+        </ToolbarItem>
+        <ToolbarSeparator />
         {isDeploying && onStop ? (
-          <Button
-            variant="ghost"
-            size="sm"
+          <ToolbarItem
             onClick={onStop}
-            className="rounded-l-none border-l border-border text-destructive hover:bg-destructive/10"
+            className="text-destructive hover:bg-destructive/10"
             title="Stop deployment"
           >
             <Square className="w-4 h-4" />
-          </Button>
+          </ToolbarItem>
         ) : (
-          <Button
-            variant="ghost"
-            size="sm"
+          <ToolbarItem
             onClick={onDeploy}
             disabled={isDeploying}
             className={cn(
-              'rounded-l-none border-l border-border hover:bg-accent hover:text-accent-foreground',
               !isDeploying && 'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
             )}
             title="Deploy"
@@ -189,9 +159,9 @@ export function EditorRightPanel({
             ) : (
               <Play className="w-4 h-4" />
             )}
-          </Button>
+          </ToolbarItem>
         )}
-      </div>
-    </div>
+      </ToolbarGroup>
+    </Toolbar>
   );
 }

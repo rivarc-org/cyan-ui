@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, Radio, Edit3, History } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ToolbarItem } from '@/components/layout/EditorToolbar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,15 +95,11 @@ export function ViewModeDropdown({
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="bg-popover/90 shadow-sm gap-2 backdrop-blur-sm border border-border/50"
-        >
+        <ToolbarItem className="gap-2">
           {getModeIcon(viewMode, isDirty)}
           <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty)}</span>
           <ChevronDown className="w-4 h-4 text-gray-400" />
-        </Button>
+        </ToolbarItem>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuItem onClick={handleSelectLive}>

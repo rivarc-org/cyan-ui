@@ -49,7 +49,6 @@ export function ExternalServiceDialog({
   onSubmit,
 }: ExternalServiceDialogProps) {
   const [name, setName] = useState('');
-  const [image, setImage] = useState('');
   const [fields, setFields] = useState<FieldDraft[]>([]);
 
   const handleAddField = () => {
@@ -73,7 +72,7 @@ export function ExternalServiceDialog({
 
     const config: ExternalServiceConfig = {
       name: name.trim(),
-      image: image.trim() || `${name.toLowerCase().replace(/\s+/g, '-')}:latest`,
+      image: `${name.toLowerCase().replace(/\s+/g, '-')}:latest`,
       fields: fields
         .filter((f) => f.name.trim())
         .map((f) => ({
@@ -91,7 +90,6 @@ export function ExternalServiceDialog({
 
   const handleReset = () => {
     setName('');
-    setImage('');
     setFields([]);
   };
 
@@ -116,15 +114,7 @@ export function ExternalServiceDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="service-image">Docker Image (optional)</Label>
-            <Input
-              id="service-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="e.g., postgres:15"
-            />
-          </div>
+
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -166,16 +156,7 @@ export function ExternalServiceDialog({
                         <SelectItem value="secret">Secret</SelectItem>
                       </SelectContent>
                     </Select>
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Default value"
-                        value={field.value}
-                        onChange={(e) =>
-                          handleUpdateField(index, 'value', e.target.value)
-                        }
-                        type={field.type === 'secret' ? 'password' : 'text'}
-                      />
-                    </div>
+
                     <Button
                       size="icon"
                       variant="ghost"

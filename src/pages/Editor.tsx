@@ -251,7 +251,6 @@ export function Editor() {
         <Background color="var(--graph-pattern-color)" />
         <Controls className="bg-card border-border [&>button]:bg-card [&>button]:border-border [&>button]:text-muted-foreground [&>button:hover]:bg-muted [&>button_svg]:fill-foreground" />
 
-        {/* Top Left - Project Info & Navigation */}
         <Panel position="top-left">
           <EditorLeftPanel
             projectId={projectId || ''}
