@@ -87,6 +87,14 @@ export interface EncryptResponse {
   cipher: string; // "SECRET:..."
 }
 
+export interface DecryptRequest {
+  cipher: string;
+}
+
+export interface DecryptResponse {
+  value: string;
+}
+
 export interface GenerateResponse {
   value: string;
   cipher: string;

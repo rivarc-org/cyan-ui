@@ -3,6 +3,12 @@ import type { NodeStatus } from '@/types/graph';
 
 type DeploymentStatus = 'idle' | 'deploying' | 'success' | 'failed';
 
+// ViewMode represents the current state of the editor
+export type ViewMode =
+  | { type: 'live' }
+  | { type: 'draft'; baseRevisionId?: string }
+  | { type: 'revision'; revisionId: string; versionNumber: number };
+
 interface UIState {
   // Selection
   selectedNodeId: string | null;
@@ -27,6 +33,12 @@ interface UIState {
   nodeStatuses: Map<string, NodeStatus>;
   updateNodeStatus: (nodeId: string, status: NodeStatus) => void;
   clearNodeStatuses: () => void;
+
+  // View mode
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  enterDraftMode: (baseRevisionId?: string) => void;
+  enterLiveMode: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -63,4 +75,11 @@ export const useUIStore = create<UIState>((set) => ({
       nodeStatuses: new Map(state.nodeStatuses).set(nodeId, status),
     })),
   clearNodeStatuses: () => set({ nodeStatuses: new Map() }),
+
+  // View mode - default to live
+  viewMode: { type: 'live' },
+  setViewMode: (mode) => set({ viewMode: mode }),
+  enterDraftMode: (baseRevisionId) =>
+    set({ viewMode: { type: 'draft', baseRevisionId } }),
+  enterLiveMode: () => set({ viewMode: { type: 'live' } }),
 }));

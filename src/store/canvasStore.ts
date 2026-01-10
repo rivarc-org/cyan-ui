@@ -7,7 +7,7 @@ import type {
   Node,
 } from '@xyflow/react';
 import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
-import type { PluginNode, GraphEdge } from '@/types/graph';
+import type { PluginNode, GraphEdge, ExternalInputField } from '@/types/graph';
 import type { PluginDetailResponse } from '@/api/types';
 import { buildDefaultInputValues } from '@/lib/transformers';
 
@@ -28,8 +28,15 @@ interface CanvasState {
     image: string,
     position?: { x: number; y: number }
   ) => string;
+  addExternalNode: (
+    name: string,
+    image: string,
+    fields: ExternalInputField[],
+    position?: { x: number; y: number }
+  ) => string;
   removeNode: (nodeId: string) => void;
   updateNodeInput: (nodeId: string, inputId: string, value: string) => void;
+  updateExternalField: (nodeId: string, fieldId: string, value: string) => void;
   updateNodeImage: (nodeId: string, image: string) => void;
 
   // Bulk operations
@@ -40,6 +47,9 @@ interface CanvasState {
   markClean: () => void;
 }
 
+// Track drag state for history batching
+let isDragging = false;
+
 // Create store with temporal middleware for undo/redo
 export const useCanvasStore = create<CanvasState>()(
   temporal(
@@ -49,10 +59,31 @@ export const useCanvasStore = create<CanvasState>()(
       isDirty: false,
 
       onNodesChange: (changes) => {
+        // Check for drag start/end to batch history
+        const positionChanges = changes.filter(
+          (c): c is NodeChange<Node> & { type: 'position'; dragging?: boolean } =>
+            c.type === 'position'
+        );
+        const dragStart = positionChanges.some((c) => c.dragging === true);
+        const dragEnd = positionChanges.some((c) => c.dragging === false);
+
+        // Pause history during drag to avoid per-frame entries
+        if (dragStart && !isDragging) {
+          isDragging = true;
+          useCanvasStore.temporal.getState().pause();
+        }
+
+        // Apply the changes
         set({
           nodes: applyNodeChanges(changes, get().nodes as Node[]) as PluginNode[],
           isDirty: true,
         });
+
+        // Resume history after drag ends (captures single entry)
+        if (dragEnd && isDragging) {
+          isDragging = false;
+          useCanvasStore.temporal.getState().resume();
+        }
       },
 
       onEdgesChange: (changes) => {
@@ -118,6 +149,34 @@ export const useCanvasStore = create<CanvasState>()(
         return nodeId;
       },
 
+      addExternalNode: (name, image, fields, position) => {
+        const nodeId = `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        const newNode: PluginNode = {
+          id: nodeId,
+          type: 'plugin',
+          position: position || { x: 200, y: 200 },
+          data: {
+            pluginId: 'external://custom',
+            pluginName: name,
+            image,
+            category: 'external',
+            inputs: [],
+            exports: [],
+            inputValues: {},
+            isExternal: true,
+            customFields: fields,
+          },
+        };
+
+        set({
+          nodes: [...get().nodes, newNode],
+          isDirty: true,
+        });
+
+        return nodeId;
+      },
+
       removeNode: (nodeId) => {
         const { nodes, edges } = get();
         set({
@@ -142,6 +201,26 @@ export const useCanvasStore = create<CanvasState>()(
                       ...node.data.inputValues,
                       [inputId]: value,
                     },
+                  },
+                }
+              : node
+          ),
+          isDirty: true,
+        });
+      },
+
+      updateExternalField: (nodeId, fieldId, value) => {
+        const { nodes } = get();
+        set({
+          nodes: nodes.map((node) =>
+            node.id === nodeId && node.data.customFields
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    customFields: node.data.customFields.map((field) =>
+                      field.id === fieldId ? { ...field, value } : field
+                    ),
                   },
                 }
               : node

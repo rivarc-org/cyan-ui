@@ -13,6 +13,8 @@ export function SecureInput({ value, onChange, placeholder }: SecureInputProps) 
   const [isVisible, setIsVisible] = useState(false);
   const [localValue, setLocalValue] = useState('');
   const [isEncrypting, setIsEncrypting] = useState(false);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptedValue, setDecryptedValue] = useState<string | null>(null);
 
   const isEncrypted = value.startsWith('SECRET:');
 
@@ -24,6 +26,7 @@ export function SecureInput({ value, onChange, placeholder }: SecureInputProps) 
         const { cipher } = await cryptoApi.encrypt(localValue);
         onChange(cipher);
         setLocalValue(''); // Clear local plaintext
+        setDecryptedValue(null); // Clear cached decrypted value
       } catch (err) {
         console.error('Encryption failed:', err);
         // Keep local value on error so user can retry
@@ -38,13 +41,32 @@ export function SecureInput({ value, onChange, placeholder }: SecureInputProps) 
     if (isEncrypted) {
       // User is typing over an encrypted value - clear it
       onChange('');
+      setDecryptedValue(null);
     }
     setLocalValue(newValue);
   };
 
+  const handleToggleVisibility = useCallback(async () => {
+    if (!isVisible && isEncrypted && !decryptedValue) {
+      // Decrypt on first reveal
+      setIsDecrypting(true);
+      try {
+        const { value: plaintext } = await cryptoApi.decrypt(value);
+        setDecryptedValue(plaintext);
+        setIsVisible(true);
+      } catch (err) {
+        console.error('Decryption failed:', err);
+      } finally {
+        setIsDecrypting(false);
+      }
+    } else {
+      setIsVisible(!isVisible);
+    }
+  }, [isVisible, isEncrypted, decryptedValue, value]);
+
   const displayValue = isEncrypted
     ? isVisible
-      ? value
+      ? decryptedValue || '...'
       : '••••••••'
     : localValue;
 
@@ -68,12 +90,12 @@ export function SecureInput({ value, onChange, placeholder }: SecureInputProps) 
         {isEncrypted && (
           <Lock className="w-3 h-3 text-green-600" />
         )}
-        {isEncrypting ? (
+        {isEncrypting || isDecrypting ? (
           <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
         ) : (
           <button
             type="button"
-            onClick={() => setIsVisible(!isVisible)}
+            onClick={handleToggleVisibility}
             className="p-0.5 text-gray-400 hover:text-gray-600"
           >
             {isVisible ? (

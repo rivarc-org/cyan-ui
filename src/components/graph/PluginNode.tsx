@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { Database, Server, MoreVertical } from 'lucide-react';
-import type { PluginNodeData } from '@/types/graph';
+import { Database, Server, MoreVertical, Box } from 'lucide-react';
+import type { PluginNodeData, ExternalInputField } from '@/types/graph';
 import type { InputDTO } from '@/api/types';
 import { InputHandle, ExportHandle } from './PluginHandle';
 import { SecureInput } from './SecureInput';
@@ -29,21 +29,42 @@ interface PluginNodeProps {
 function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
   const nodeData = data;
   const updateNodeInput = useCanvasStore((s) => s.updateNodeInput);
+  const updateExternalField = useCanvasStore((s) => s.updateExternalField);
   const openInspector = useUIStore((s) => s.openInspector);
   const nodeStatus = useUIStore((s) => s.nodeStatuses.get(id));
+  const viewMode = useUIStore((s) => s.viewMode);
+
+  // Only show status dots in live mode
+  const shouldShowStatus = viewMode.type === 'live';
+  const displayStatus = shouldShowStatus ? (nodeStatus || nodeData.status) : undefined;
 
   const pluginInputs = nodeData.inputs.filter((i: InputDTO) => i.type === 'plugin');
-  const editableInputs = nodeData.inputs.filter(
-    (i: InputDTO) => i.type !== 'plugin' && !i.generate
-  );
 
-  const CategoryIcon = nodeData.category === 'stateful' ? Database : Server;
+  // Only external nodes get editable inputs
+  const editableInputs = nodeData.isExternal
+    ? nodeData.inputs.filter(
+        (i: InputDTO) => i.type !== 'plugin' && !i.generate && i.id !== 'INTERNAL_PORT'
+      )
+    : [];
+
+  // Choose icon based on category
+  const CategoryIcon = nodeData.category === 'external'
+    ? Box
+    : nodeData.category === 'stateful'
+      ? Database
+      : Server;
+
+  // Check if there's any content to show in the body
+  const hasBodyContent =
+    editableInputs.length > 0 ||
+    pluginInputs.length > 0 ||
+    (nodeData.isExternal && nodeData.customFields && nodeData.customFields.length > 0);
 
   return (
     <div
       className={cn(
-        'bg-white rounded-lg shadow-lg border-2 transition-all',
-        selected ? 'border-blue-500 shadow-blue-200' : 'border-gray-200',
+        'bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 transition-all',
+        selected ? 'border-blue-500 shadow-blue-200 dark:shadow-blue-900' : 'border-gray-200 dark:border-gray-700',
         'relative'
       )}
       style={{ width: NODE_WIDTH }}
@@ -59,24 +80,24 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
       ))}
 
       {/* Handle - Right side for exports */}
-      <ExportHandle hasExports={nodeData.exports.length > 0} />
+      <ExportHandle hasExports={nodeData.exports.length > 0 || !!nodeData.isExternal} />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-100">
+      <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <CategoryIcon className="w-4 h-4 text-gray-500" />
-          <span className="font-medium text-sm truncate max-w-[180px]">
+          <CategoryIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <span className="font-medium text-sm truncate max-w-[180px] dark:text-gray-100">
             {nodeData.pluginName}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {(nodeStatus || nodeData.status) && (
+          {displayStatus && (
             <div
               className={cn(
                 'w-2 h-2 rounded-full',
-                statusColors[nodeStatus || nodeData.status || 'pending']
+                statusColors[displayStatus]
               )}
-              title={nodeStatus || nodeData.status}
+              title={displayStatus}
             />
           )}
           <button
@@ -84,17 +105,17 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
               e.stopPropagation();
               openInspector(id);
             }}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
             <MoreVertical className="w-4 h-4 text-gray-400" />
           </button>
         </div>
       </div>
 
-      {/* Body - Editable inputs */}
+      {/* Body - Inputs and custom fields */}
       <div className="p-3 space-y-3">
-        {editableInputs.length === 0 && pluginInputs.length === 0 && (
-          <p className="text-xs text-gray-400 italic">
+        {!hasBodyContent && (
+          <p className="text-xs text-gray-400 dark:text-gray-500 italic">
             No configuration required
           </p>
         )}
@@ -103,13 +124,13 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
         {pluginInputs.map((input: InputDTO) => (
           <div
             key={input.id}
-            className="flex items-center gap-2 text-xs text-gray-500"
+            className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
           >
             <span className="w-2 h-2 rounded-full bg-blue-400" />
             <span>
               {input.id.replace(/_/g, ' ')}
               {input.accepts && (
-                <span className="text-gray-400 ml-1">
+                <span className="text-gray-400 dark:text-gray-500 ml-1">
                   ({input.accepts.split('.').pop()})
                 </span>
               )}
@@ -117,10 +138,10 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
           </div>
         ))}
 
-        {/* Editable input fields */}
+        {/* Editable input fields (external nodes only) */}
         {editableInputs.map((input: InputDTO) => (
           <div key={input.id} className="space-y-1">
-            <label className="text-xs font-medium text-gray-600">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
               {input.id.replace(/_/g, ' ')}
             </label>
             {input.type === 'secret' ? (
@@ -136,7 +157,36 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
                 onChange={(e) => updateNodeInput(id, input.id, e.target.value)}
                 placeholder={input.default || ''}
                 className={cn(
-                  'nodrag w-full px-2 py-1 text-sm border border-gray-200 rounded',
+                  'nodrag w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded',
+                  'bg-white dark:bg-gray-700 dark:text-gray-100',
+                  'focus:outline-none focus:ring-1 focus:ring-blue-500'
+                )}
+              />
+            )}
+          </div>
+        ))}
+
+        {/* Custom fields for external nodes */}
+        {nodeData.isExternal && nodeData.customFields?.map((field: ExternalInputField) => (
+          <div key={field.id} className="space-y-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              {field.name}
+            </label>
+            {field.type === 'secret' ? (
+              <SecureInput
+                value={field.value || ''}
+                onChange={(value) => updateExternalField(id, field.id, value)}
+                placeholder={`Enter ${field.name}...`}
+              />
+            ) : (
+              <input
+                type="text"
+                value={field.value || ''}
+                onChange={(e) => updateExternalField(id, field.id, e.target.value)}
+                placeholder=""
+                className={cn(
+                  'nodrag w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded',
+                  'bg-white dark:bg-gray-700 dark:text-gray-100',
                   'focus:outline-none focus:ring-1 focus:ring-blue-500'
                 )}
               />
@@ -146,8 +196,8 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
       </div>
 
       {/* Footer - Image tag */}
-      <div className="px-3 py-2 bg-gray-50 rounded-b-lg border-t border-gray-100">
-        <p className="text-xs text-gray-400 truncate" title={nodeData.image}>
+      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-b-lg border-t border-gray-100 dark:border-gray-700">
+        <p className="text-xs text-gray-400 dark:text-gray-500 truncate" title={nodeData.image}>
           {nodeData.image}
         </p>
       </div>

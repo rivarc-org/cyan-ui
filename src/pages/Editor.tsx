@@ -8,17 +8,17 @@ import {
   type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus } from 'lucide-react';
 
 import { PluginNode } from '@/components/graph/PluginNode';
 import { NodeInspector } from '@/components/graph/NodeInspector';
 import { CommandPalette } from '@/components/dialogs/CommandPalette';
 import { FloatingBar } from '@/components/layout/FloatingBar';
-import { Button } from '@/components/ui/button';
+import { AddNodeMenu } from '@/components/layout/AddNodeMenu';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { useCanvasStore, useTemporalStore } from '@/store/canvasStore';
 import { useUIStore } from '@/store/uiStore';
+import { useThemeStore } from '@/store/themeStore';
 import { useDeploymentEvents } from '@/hooks/useDeploymentEvents';
 
 import { revisionsApi } from '@/api/revisions';
@@ -39,6 +39,7 @@ export function Editor() {
   const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pluginMap, setPluginMap] = useState<Map<string, import('@/api/types').PluginDetailResponse>>(new Map());
 
   // Canvas store
   const nodes = useCanvasStore((s) => s.nodes);
@@ -57,7 +58,9 @@ export function Editor() {
   const isDeploying = useUIStore((s) => s.isDeploying);
   const setDeploymentStatus = useUIStore((s) => s.setDeploymentStatus);
   const clearNodeStatuses = useUIStore((s) => s.clearNodeStatuses);
-  const openCommandPalette = useUIStore((s) => s.openCommandPalette);
+
+  // Theme
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme());
 
   // WebSocket for deployment events
   useDeploymentEvents(projectId || '', isDeploying);
@@ -81,6 +84,7 @@ export function Editor() {
           plugins.map((p) => pluginsApi.get(p.id))
         );
         const map = new Map(pluginDetails.map((p) => [p.id, p]));
+        setPluginMap(map);
 
         // Load latest revision
         try {
@@ -151,6 +155,32 @@ export function Editor() {
     }
   }, [projectId, setDeploymentStatus, clearNodeStatuses]);
 
+  // Load a specific revision
+  const handleLoadRevision = useCallback(async (revisionId: string) => {
+    if (!projectId) return;
+
+    try {
+      const revision = await revisionsApi.get(projectId, revisionId);
+      const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
+      setGraph(nodes, edges);
+    } catch (err) {
+      console.error('Failed to load revision:', err);
+    }
+  }, [projectId, pluginMap, setGraph]);
+
+  // Load the latest revision
+  const handleLoadLatest = useCallback(async () => {
+    if (!projectId) return;
+
+    try {
+      const revision = await revisionsApi.getLatest(projectId);
+      const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
+      setGraph(nodes, edges);
+    } catch {
+      // No revision, keep current graph
+    }
+  }, [projectId, pluginMap, setGraph]);
+
   // Connection validation
   const handleIsValidConnection = useCallback(
     (connection: Connection | GraphEdge) => {
@@ -216,14 +246,15 @@ export function Editor() {
         isValidConnection={handleIsValidConnection}
         fitView
         proOptions={{ hideAttribution: true }}
-        className="bg-gray-50"
+        className={resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}
       >
-        <Background />
-        <Controls />
+        <Background color={resolvedTheme === 'dark' ? '#374151' : '#e5e7eb'} />
+        <Controls className="dark:bg-gray-800 dark:border-gray-700" />
 
         {/* Top Left - Floating Bar */}
         <Panel position="top-left">
           <FloatingBar
+            projectId={projectId || ''}
             projectName={projectName}
             isDirty={isDirty}
             isSaving={isSaving}
@@ -236,18 +267,14 @@ export function Editor() {
             onStop={handleStop}
             onUndo={handleUndo}
             onRedo={handleRedo}
+            onLoadRevision={handleLoadRevision}
+            onLoadLatest={handleLoadLatest}
           />
         </Panel>
 
-        {/* Bottom Center - Add Node Button */}
-        <Panel position="bottom-center">
-          <Button
-            onClick={openCommandPalette}
-            className="rounded-full w-12 h-12 shadow-lg"
-            title="Add plugin (Cmd+K)"
-          >
-            <Plus className="w-5 h-5" />
-          </Button>
+        {/* Bottom Right - Add Node Menu */}
+        <Panel position="bottom-right">
+          <AddNodeMenu />
         </Panel>
       </ReactFlow>
 

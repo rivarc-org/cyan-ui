@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import {
   ChevronLeft,
   Undo2,
@@ -6,11 +7,18 @@ import {
   Play,
   Square,
   Loader2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
 import { cn } from '@/lib/utils';
+import { useCanvasStore } from '@/store/canvasStore';
+import { flowToBackend } from '@/lib/transformers';
 
 interface FloatingBarProps {
+  projectId: string;
   projectName: string;
   isDirty: boolean;
   isSaving: boolean;
@@ -23,9 +31,12 @@ interface FloatingBarProps {
   onStop?: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onLoadRevision: (revisionId: string) => Promise<void>;
+  onLoadLatest: () => Promise<void>;
 }
 
 export function FloatingBar({
+  projectId,
   projectName,
   isDirty,
   isSaving,
@@ -38,7 +49,21 @@ export function FloatingBar({
   onStop,
   onUndo,
   onRedo,
+  onLoadRevision,
+  onLoadLatest,
 }: FloatingBarProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    const nodes = useCanvasStore.getState().nodes;
+    const edges = useCanvasStore.getState().edges;
+    const graphState = flowToBackend(nodes, edges);
+
+    await navigator.clipboard.writeText(JSON.stringify(graphState, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+
   return (
     <div className="flex items-center gap-4">
       {/* Back Button */}
@@ -46,22 +71,42 @@ export function FloatingBar({
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="bg-white/90 shadow-sm hover:bg-white"
+        className="bg-white/90 dark:bg-gray-800/90 shadow-sm hover:bg-white dark:hover:bg-gray-800"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
         Back
       </Button>
 
-      {/* Project Name + Dirty Indicator */}
-      <div className="bg-white/90 shadow-sm rounded-md px-4 py-2 flex items-center gap-2">
+      {/* Project Name */}
+      <div className="bg-white/90 dark:bg-gray-800/90 shadow-sm rounded-md px-4 py-2 flex items-center gap-2">
         <span className="font-medium text-sm">{projectName}</span>
-        {isDirty && (
-          <span className="w-2 h-2 rounded-full bg-orange-400" title="Unsaved changes" />
-        )}
       </div>
 
+      {/* View Mode Dropdown */}
+      <ViewModeDropdown
+        projectId={projectId}
+        isDirty={isDirty}
+        onLoadRevision={onLoadRevision}
+        onLoadLatest={onLoadLatest}
+      />
+
+      {/* Copy JSON Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        className="bg-white/90 dark:bg-gray-800/90 shadow-sm"
+        title="Copy graph JSON to clipboard"
+      >
+        {copied ? (
+          <Check className="w-4 h-4 text-green-500" />
+        ) : (
+          <Copy className="w-4 h-4" />
+        )}
+      </Button>
+
       {/* Actions */}
-      <div className="bg-white/90 shadow-sm rounded-md flex items-center">
+      <div className="bg-white/90 dark:bg-gray-800/90 shadow-sm rounded-md flex items-center">
         {/* Undo/Redo */}
         <Button
           variant="ghost"
@@ -78,7 +123,7 @@ export function FloatingBar({
           size="sm"
           onClick={onRedo}
           disabled={!canRedo}
-          className="rounded-none border-l"
+          className="rounded-none border-l dark:border-gray-700"
           title="Redo (Cmd+Shift+Z)"
         >
           <Redo2 className="w-4 h-4" />
@@ -90,7 +135,7 @@ export function FloatingBar({
           size="sm"
           onClick={onSave}
           disabled={isSaving || !isDirty}
-          className="rounded-none border-l"
+          className="rounded-none border-l dark:border-gray-700"
           title="Save (Cmd+S)"
         >
           {isSaving ? (
@@ -106,7 +151,7 @@ export function FloatingBar({
             variant="ghost"
             size="sm"
             onClick={onStop}
-            className="rounded-l-none border-l text-destructive"
+            className="rounded-l-none border-l dark:border-gray-700 text-destructive"
             title="Stop deployment"
           >
             <Square className="w-4 h-4" />
@@ -118,7 +163,7 @@ export function FloatingBar({
             onClick={onDeploy}
             disabled={isDeploying}
             className={cn(
-              'rounded-l-none border-l',
+              'rounded-l-none border-l dark:border-gray-700',
               !isDeploying && 'text-green-600 hover:text-green-700'
             )}
             title="Deploy"
@@ -131,6 +176,9 @@ export function FloatingBar({
           </Button>
         )}
       </div>
+
+      {/* Theme Toggle */}
+      <ThemeToggle />
     </div>
   );
 }
