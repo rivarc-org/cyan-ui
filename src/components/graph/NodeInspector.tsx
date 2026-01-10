@@ -4,11 +4,11 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUIStore } from '@/store/uiStore';
 import { useCanvasStore } from '@/store/canvasStore';
@@ -70,25 +70,25 @@ export function NodeInspector() {
 
   if (!selectedNode) {
     return (
-      <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>No node selected</SheetTitle>
-          </SheetHeader>
-        </SheetContent>
-      </Sheet>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>No node selected</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader>
-          <SheetTitle>{selectedNode.data.pluginName}</SheetTitle>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[800px] h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{selectedNode.data.pluginName}</DialogTitle>
+        </DialogHeader>
 
-        <Tabs defaultValue="details" className="mt-4">
-          <TabsList className="w-full">
+        <Tabs defaultValue="details" className="mt-4 flex-1 flex flex-col overflow-hidden">
+          <TabsList className="w-full shrink-0">
             <TabsTrigger value="details" className="flex-1">
               Details
             </TabsTrigger>
@@ -97,7 +97,7 @@ export function NodeInspector() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details" className="space-y-4 mt-4">
+          <TabsContent value="details" className="space-y-4 mt-4 overflow-y-auto pr-2">
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">
                 Node ID
@@ -139,14 +139,14 @@ export function NodeInspector() {
             )}
           </TabsContent>
 
-          <TabsContent value="logs" className="mt-4">
+          <TabsContent value="logs" className="mt-4 flex-1 min-h-0">
             <div
               ref={terminalRef}
-              className="h-[400px] rounded-md overflow-hidden bg-[#1a1a1a]"
+              className="h-full w-full rounded-md overflow-hidden bg-[#1a1a1a]"
             />
           </TabsContent>
         </Tabs>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
