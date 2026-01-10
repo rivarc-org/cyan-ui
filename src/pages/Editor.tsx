@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
   Background,
-  Controls,
   Panel,
   type Connection,
 } from '@xyflow/react';
@@ -15,6 +14,7 @@ import { CommandPalette } from '@/components/dialogs/CommandPalette';
 import { EditorLeftPanel, EditorRightPanel } from '@/components/layout/FloatingBar';
 import { AddNodeMenu } from '@/components/layout/AddNodeMenu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditorControls } from '@/components/graph/EditorControls';
 
 import { useCanvasStore, useTemporalStore } from '@/store/canvasStore';
 import { useUIStore } from '@/store/uiStore';
@@ -249,7 +249,10 @@ export function Editor() {
         className="bg-background"
       >
         <Background color="var(--graph-pattern-color)" />
-        <Controls className="bg-card border-border [&>button]:bg-card [&>button]:border-border [&>button]:text-muted-foreground [&>button:hover]:bg-muted [&>button_svg]:fill-foreground" />
+
+        <Panel position="bottom-left">
+          <EditorControls />
+        </Panel>
 
         <Panel position="top-left">
           <EditorLeftPanel
