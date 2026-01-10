@@ -34,6 +34,7 @@ interface FloatingBarProps {
   onRedo: () => void;
   onLoadRevision: (revisionId: string) => Promise<void>;
   onLoadLatest: () => Promise<void>;
+  currentRevisionId?: string;
 }
 
 
@@ -41,11 +42,12 @@ interface FloatingBarProps {
 export function EditorLeftPanel({
   projectId,
   projectName,
+  currentRevisionId,
   isDirty,
   onLoadRevision,
   onLoadLatest,
   onBack,
-}: Pick<FloatingBarProps, 'projectId' | 'projectName' | 'isDirty' | 'onLoadRevision' | 'onLoadLatest' | 'onBack'>) {
+}: Pick<FloatingBarProps, 'projectId' | 'projectName' | 'currentRevisionId' | 'isDirty' | 'onLoadRevision' | 'onLoadLatest' | 'onBack'>) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -72,6 +74,7 @@ export function EditorLeftPanel({
         <ToolbarSeparator />
         <ViewModeDropdown
           projectId={projectId}
+          currentRevisionId={currentRevisionId}
           isDirty={isDirty}
           onLoadRevision={onLoadRevision}
           onLoadLatest={onLoadLatest}

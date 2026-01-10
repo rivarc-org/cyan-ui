@@ -19,6 +19,7 @@ interface ViewModeDropdownProps {
   isDirty: boolean;
   onLoadRevision: (revisionId: string) => Promise<void>;
   onLoadLatest: () => Promise<void>;
+  currentRevisionId?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -31,9 +32,10 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getModeLabel(mode: ViewMode, isDirty: boolean): string {
+function getModeLabel(mode: ViewMode, isDirty: boolean, liveRevision?: RevisionSummary): string {
   if (mode.type === 'live') {
-    return isDirty ? 'Draft' : 'Live';
+    if (isDirty) return 'Draft';
+    return liveRevision ? `Live v${liveRevision.version_number}` : 'Live';
   }
   if (mode.type === 'draft') {
     return 'Draft';
@@ -53,6 +55,7 @@ function getModeIcon(mode: ViewMode, isDirty: boolean) {
 
 export function ViewModeDropdown({
   projectId,
+  currentRevisionId,
   isDirty,
   onLoadRevision,
   onLoadLatest,
@@ -92,12 +95,14 @@ export function ViewModeDropdown({
     });
   };
 
+  const liveRevision = revisions.find(r => r.id === currentRevisionId);
+
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <ToolbarItem className="gap-2">
           {getModeIcon(viewMode, isDirty)}
-          <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty)}</span>
+          <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty, liveRevision)}</span>
           <ChevronDown className="w-6 h-6 text-gray-400" />
         </ToolbarItem>
       </DropdownMenuTrigger>
@@ -105,9 +110,9 @@ export function ViewModeDropdown({
         <DropdownMenuItem onClick={handleSelectLive}>
           <Radio className="w-6 h-6 mr-2 text-green-500" />
           <span>Live</span>
-          {viewMode.type === 'live' && !isDirty && (
-            <span className="ml-auto text-xs text-gray-400">current</span>
-          )}
+          <span className="ml-auto text-xs text-gray-400">
+            {liveRevision ? `v${liveRevision.version_number}` : 'current'}
+          </span>
         </DropdownMenuItem>
 
         {isDirty && (
@@ -127,12 +132,12 @@ export function ViewModeDropdown({
           <div className="px-2 py-4 text-center text-sm text-gray-400">
             Loading...
           </div>
-        ) : revisions.length === 0 ? (
+        ) : revisions.filter(r => r.id !== currentRevisionId).length === 0 ? (
           <div className="px-2 py-4 text-center text-sm text-gray-400">
-            No revisions yet
+            No history yet
           </div>
         ) : (
-          revisions.slice(0, 10).map((rev) => (
+          revisions.filter(r => r.id !== currentRevisionId).slice(0, 10).map((rev) => (
             <DropdownMenuItem
               key={rev.id}
               onClick={() => handleSelectRevision(rev)}

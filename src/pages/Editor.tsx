@@ -37,6 +37,7 @@ export function Editor() {
   const navigate = useNavigate();
 
   const [projectName, setProjectName] = useState('');
+  const [currentRevisionId, setCurrentRevisionId] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [pluginMap, setPluginMap] = useState<Map<string, import('@/api/types').PluginDetailResponse>>(new Map());
@@ -56,6 +57,7 @@ export function Editor() {
 
   // UI store
   const isDeploying = useUIStore((s) => s.isDeploying);
+  const deploymentStatus = useUIStore((s) => s.deploymentStatus);
   const setDeploymentStatus = useUIStore((s) => s.setDeploymentStatus);
   const clearNodeStatuses = useUIStore((s) => s.clearNodeStatuses);
 
@@ -78,6 +80,7 @@ export function Editor() {
         ]);
 
         setProjectName(project.name);
+        setCurrentRevisionId(project.current_revision_id);
 
         // Build plugin detail map
         const pluginDetails = await Promise.all(
@@ -160,6 +163,15 @@ export function Editor() {
     }
   }, [projectId, setDeploymentStatus, clearNodeStatuses]);
 
+  // Refresh current revision when deployment succeeds
+  useEffect(() => {
+    if (deploymentStatus === 'success' && projectId) {
+      projectsApi.get(projectId).then(project => {
+        setCurrentRevisionId(project.current_revision_id);
+      }).catch(console.error);
+    }
+  }, [deploymentStatus, projectId]);
+
   // Load a specific revision
   const handleLoadRevision = useCallback(async (revisionId: string) => {
     if (!projectId) return;
@@ -179,6 +191,7 @@ export function Editor() {
 
     try {
       const project = await projectsApi.get(projectId);
+      setCurrentRevisionId(project.current_revision_id);
       if (project.current_revision_id) {
         const revision = await revisionsApi.get(projectId, project.current_revision_id);
         const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
@@ -266,6 +279,7 @@ export function Editor() {
           <EditorLeftPanel
             projectId={projectId || ''}
             projectName={projectName}
+            currentRevisionId={currentRevisionId}
             isDirty={isDirty}
             onBack={() => navigate('/')}
             onLoadRevision={handleLoadRevision}
