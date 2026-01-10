@@ -20,6 +20,7 @@ export interface CreateProjectResponse {
 export interface RevisionSummary {
   id: string;
   version_number: number;
+  is_draft: boolean;
   created_at: string;
 }
 
@@ -27,6 +28,7 @@ export interface RevisionDetailResponse {
   id: string;
   project_id: string;
   version_number: number;
+  is_draft: boolean;
   graph_state: GraphStateDTO;
   created_at: string;
 }
@@ -39,7 +41,8 @@ export interface GraphStateDTO {
 export interface NodeStateDTO {
   id: string;
   plugin_id: string;
-  image: string;
+  version?: string;
+  exports?: string[];
   inputs: Record<string, string>;
 }
 
@@ -60,6 +63,7 @@ export interface PluginDetailResponse {
   name: string;
   version: string;
   category: 'worker' | 'stateful';
+  image: string;
   inputs: InputDTO[];
   exports: ExportDTO[];
 }

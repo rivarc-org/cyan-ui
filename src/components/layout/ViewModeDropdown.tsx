@@ -144,6 +144,11 @@ export function ViewModeDropdown({
             >
               <History className="w-6 h-6 mr-2 text-gray-400" />
               <span>v{rev.version_number}</span>
+              {rev.is_draft && (
+                <span className="ml-2 text-xs bg-orange-500/20 text-orange-500 px-1 rounded">
+                  draft
+                </span>
+              )}
               <span className="ml-auto text-xs text-gray-400">
                 {formatDate(rev.created_at)}
               </span>

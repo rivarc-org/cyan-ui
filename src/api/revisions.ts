@@ -14,14 +14,14 @@ export const revisionsApi = {
       `/projects/${projectId}/revisions/${revisionId}`
     ),
 
-  getLatest: (projectId: string) =>
-    apiRequest<RevisionDetailResponse>(
-      `/projects/${projectId}/revisions/latest`
-    ),
-
   create: (projectId: string, graphState: GraphStateDTO) =>
     apiRequest<RevisionDetailResponse>(`/projects/${projectId}/revisions`, {
       method: 'POST',
       body: JSON.stringify({ graph_state: graphState }),
+    }),
+
+  delete: (projectId: string, revisionId: string) =>
+    apiRequest<void>(`/projects/${projectId}/revisions/${revisionId}`, {
+      method: 'DELETE',
     }),
 };

@@ -86,12 +86,17 @@ export function Editor() {
         const map = new Map(pluginDetails.map((p) => [p.id, p]));
         setPluginMap(map);
 
-        // Load latest revision
-        try {
-          const revision = await revisionsApi.getLatest(projectId);
-          const { nodes, edges } = backendToFlow(revision.graph_state, map);
-          setGraph(nodes, edges);
-        } catch {
+        // Load current revision (deployed)
+        if (project.current_revision_id) {
+          try {
+            const revision = await revisionsApi.get(projectId, project.current_revision_id);
+            const { nodes, edges } = backendToFlow(revision.graph_state, map);
+            setGraph(nodes, edges);
+          } catch {
+            // Revision not found, start with empty graph
+            setGraph([], []);
+          }
+        } else {
           // No revision yet, start with empty graph
           setGraph([], []);
         }
@@ -168,14 +173,17 @@ export function Editor() {
     }
   }, [projectId, pluginMap, setGraph]);
 
-  // Load the latest revision
+  // Load the current deployed revision
   const handleLoadLatest = useCallback(async () => {
     if (!projectId) return;
 
     try {
-      const revision = await revisionsApi.getLatest(projectId);
-      const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
-      setGraph(nodes, edges);
+      const project = await projectsApi.get(projectId);
+      if (project.current_revision_id) {
+        const revision = await revisionsApi.get(projectId, project.current_revision_id);
+        const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
+        setGraph(nodes, edges);
+      }
     } catch {
       // No revision, keep current graph
     }

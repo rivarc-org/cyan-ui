@@ -39,7 +39,7 @@ export function backendToFlow(
       data: {
         pluginId: plugin.id,
         pluginName: plugin.name,
-        image: backendNode.image,
+        image: plugin.image,
         category: plugin.category,
         inputs: plugin.inputs,
         exports: plugin.exports,
@@ -113,7 +113,6 @@ export function flowToBackend(
     return {
       id: node.id,
       plugin_id: node.data.pluginId,
-      image: node.data.image,
       inputs,
     };
   });
@@ -155,12 +154,3 @@ export function buildDefaultInputValues(
   return values;
 }
 
-/**
- * Derive a reasonable default image from plugin ID
- * e.g., "com.cyanstack.postgres" -> "postgres:latest"
- */
-export function guessDefaultImage(pluginId: string): string {
-  const parts = pluginId.split('.');
-  const name = parts[parts.length - 1];
-  return `${name}:latest`;
-}
