@@ -24,4 +24,12 @@ export const revisionsApi = {
     apiRequest<void>(`/projects/${projectId}/revisions/${revisionId}`, {
       method: 'DELETE',
     }),
+  update: (projectId: string, revisionId: string, graphState: GraphStateDTO) =>
+    apiRequest<RevisionDetailResponse>(
+      `/projects/${projectId}/revisions/${revisionId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ graph_state: graphState }),
+      }
+    ),
 };

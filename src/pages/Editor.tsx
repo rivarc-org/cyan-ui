@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
@@ -36,10 +36,13 @@ export function Editor() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [projectName, setProjectName] = useState('');
-  const [currentRevisionId, setCurrentRevisionId] = useState<string | undefined>();
+  // Project state from store
+  const currentRevisionId = useUIStore((s) => s.currentRevisionId);
+  const setActiveProject = useUIStore((s) => s.setActiveProject);
+  const resetProject = useUIStore((s) => s.resetProject);
+  const setRevisions = useUIStore((s) => s.setRevisions);
+  // loading state
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [pluginMap, setPluginMap] = useState<Map<string, import('@/api/types').PluginDetailResponse>>(new Map());
 
   // Canvas store
@@ -50,6 +53,7 @@ export function Editor() {
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
   const onConnect = useCanvasStore((s) => s.onConnect);
   const setGraph = useCanvasStore((s) => s.setGraph);
+  const setInitialized = useCanvasStore((s) => s.setInitialized);
   const markClean = useCanvasStore((s) => s.markClean);
 
   // Temporal (undo/redo)
@@ -60,95 +64,112 @@ export function Editor() {
   const deploymentStatus = useUIStore((s) => s.deploymentStatus);
   const setDeploymentStatus = useUIStore((s) => s.setDeploymentStatus);
   const clearNodeStatuses = useUIStore((s) => s.clearNodeStatuses);
-
-  // Theme
-
+  const viewMode = useUIStore((s) => s.viewMode);
+  const enterDraftMode = useUIStore((s) => s.enterDraftMode);
+  const enterLiveMode = useUIStore((s) => s.enterLiveMode);
+  const setHistoryMode = useUIStore((s) => s.setHistoryMode);
 
   // WebSocket for deployment events
   useDeploymentEvents(projectId || '', isDeploying);
+
+  // Ref to track if we are currently loading to prevent double triggers
+  const isInitialLoadRef = useRef(true);
 
   // Load project data
   useEffect(() => {
     if (!projectId) return;
 
     const loadData = async () => {
+      setIsLoading(true);
+      resetProject();
+      setGraph([], []);
+      markClean();
+
       try {
-        // Load project and plugins first
-        const [project, plugins] = await Promise.all([
+        // 1. Fetch Project, Plugins and Revisions List concurrently
+        const [project, plugins, revisionList] = await Promise.all([
           projectsApi.get(projectId),
           pluginsApi.list(),
+          revisionsApi.list(projectId)
         ]);
 
-        setProjectName(project.name);
-        setCurrentRevisionId(project.current_revision_id);
+        setActiveProject(project.id, project.name, project.current_revision_id ?? null);
+        setRevisions(revisionList);
 
-        // Build plugin detail map
+        // 2. Build plugin detail map
         const pluginDetails = await Promise.all(
           plugins.map((p) => pluginsApi.get(p.id))
         );
         const map = new Map(pluginDetails.map((p) => [p.id, p]));
         setPluginMap(map);
 
-        // Load current revision (deployed)
+        // 3. Determine which revision to load
+        // By default, we load the project's current_revision_id.
+        // If it's a draft, we are in DRAFT mode.
+        // If it's NOT a draft, we are in LIVE mode.
         if (project.current_revision_id) {
-          try {
-            const revision = await revisionsApi.get(projectId, project.current_revision_id);
-            const { nodes, edges } = backendToFlow(revision.graph_state, map);
-            setGraph(nodes, edges);
-          } catch {
-            // Revision not found, start with empty graph
-            setGraph([], []);
-          }
+          const revision = await revisionsApi.get(project.id, project.current_revision_id);
+          const { nodes, edges } = backendToFlow(revision.graph_state, map);
+
+          setGraph(nodes, edges);
+
+          // Wait for a tick to ensure React Flow has processed the graph
+          setTimeout(() => {
+            setInitialized(true);
+            enterLiveMode();
+          }, 50);
         } else {
-          // No revision yet, start with empty graph
+          // No revision yet
           setGraph([], []);
+          setInitialized(true);
+          enterLiveMode();
         }
       } catch (err) {
         console.error('Failed to load project:', err);
         navigate('/');
       } finally {
         setIsLoading(false);
+        isInitialLoadRef.current = false;
       }
     };
 
     loadData();
-  }, [projectId, setGraph, navigate]);
+  }, [projectId, setGraph, navigate, setActiveProject, resetProject, setRevisions, enterDraftMode, enterLiveMode, setHistoryMode, markClean, setInitialized]);
 
-  // Save handler
-  const handleSave = useCallback(async () => {
-    if (!projectId || isSaving) return;
-
-    setIsSaving(true);
-    try {
-      const graphState = flowToBackend(nodes, edges);
-      await revisionsApi.create(projectId, graphState);
-      markClean();
-    } catch (err) {
-      console.error('Failed to save:', err);
-    } finally {
-      setIsSaving(false);
+  // Auto-draft on first edit
+  useEffect(() => {
+    if (isDirty && viewMode !== 'draft' && projectId && !isInitialLoadRef.current) {
+      enterDraftMode();
     }
-  }, [projectId, nodes, edges, isSaving, markClean]);
+  }, [isDirty, viewMode, projectId, enterDraftMode]);
 
   // Deploy handler
   const handleDeploy = useCallback(async () => {
     if (!projectId) return;
 
-    // Save first if dirty
-    if (isDirty) {
-      await handleSave();
-    }
-
     try {
-      clearNodeStatuses();
       setDeploymentStatus('deploying');
+
+      // If we are in draft mode, we MUST create a new revision first
+      if (viewMode === 'draft' || isDirty) {
+        const graphState = flowToBackend(nodes, edges);
+        await revisionsApi.create(projectId, graphState);
+        // Refresh revisions list
+        const newList = await revisionsApi.list(projectId);
+        setRevisions(newList);
+      }
+
+      clearNodeStatuses();
       await projectsApi.deploy(projectId);
-      // Status updates come via WebSocket
+
+      // Transition back to live mode and mark as clean immediately after acceptance
+      enterLiveMode();
+      markClean();
     } catch (err) {
       console.error('Deploy failed:', err);
       setDeploymentStatus('failed');
     }
-  }, [projectId, isDirty, handleSave, clearNodeStatuses, setDeploymentStatus]);
+  }, [projectId, isDirty, viewMode, nodes, edges, setRevisions, enterLiveMode, markClean, clearNodeStatuses, setDeploymentStatus]);
 
   // Stop handler
   const handleStop = useCallback(async () => {
@@ -163,49 +184,65 @@ export function Editor() {
     }
   }, [projectId, setDeploymentStatus, clearNodeStatuses]);
 
-  // Refresh current revision when deployment succeeds
+  // Refresh metadata when deployment succeeds
   useEffect(() => {
     if (deploymentStatus === 'success' && projectId) {
-      projectsApi.get(projectId).then(project => {
-        setCurrentRevisionId(project.current_revision_id);
+      Promise.all([
+        projectsApi.get(projectId),
+        revisionsApi.list(projectId)
+      ]).then(([project, revisionList]) => {
+        setActiveProject(project.id, project.name, project.current_revision_id ?? null);
+        setRevisions(revisionList);
+        enterLiveMode();
       }).catch(console.error);
     }
-  }, [deploymentStatus, projectId]);
+  }, [deploymentStatus, projectId, setActiveProject, setRevisions, enterLiveMode]);
 
   // Load a specific revision
   const handleLoadRevision = useCallback(async (revisionId: string) => {
     if (!projectId) return;
 
     try {
+      setInitialized(false);
       const revision = await revisionsApi.get(projectId, revisionId);
       const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
       setGraph(nodes, edges);
+
+      setTimeout(() => {
+        setInitialized(true);
+        if (revision.id === currentRevisionId) {
+          enterLiveMode();
+        } else {
+          setHistoryMode(revision.id);
+        }
+      }, 50);
     } catch (err) {
       console.error('Failed to load revision:', err);
     }
-  }, [projectId, pluginMap, setGraph]);
+  }, [projectId, pluginMap, setGraph, enterDraftMode, setHistoryMode, setInitialized]);
 
   // Load the current deployed revision
   const handleLoadLatest = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !currentRevisionId) return;
 
     try {
-      const project = await projectsApi.get(projectId);
-      setCurrentRevisionId(project.current_revision_id);
-      if (project.current_revision_id) {
-        const revision = await revisionsApi.get(projectId, project.current_revision_id);
-        const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
-        setGraph(nodes, edges);
-      }
+      setInitialized(false);
+      const revision = await revisionsApi.get(projectId, currentRevisionId);
+      const { nodes, edges } = backendToFlow(revision.graph_state, pluginMap);
+      setGraph(nodes, edges);
+
+      setTimeout(() => {
+        setInitialized(true);
+        enterLiveMode();
+      }, 50);
     } catch {
-      // No revision, keep current graph
+      enterLiveMode();
     }
-  }, [projectId, pluginMap, setGraph]);
+  }, [projectId, currentRevisionId, pluginMap, setGraph, enterLiveMode, setInitialized]);
 
   // Connection validation
   const handleIsValidConnection = useCallback(
     (connection: Connection | GraphEdge) => {
-      // Cast to Connection for validation
       return isValidConnection(connection as Connection, nodes);
     },
     [nodes]
@@ -228,7 +265,7 @@ export function Editor() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        handleSave();
+        handleDeploy();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
@@ -242,7 +279,7 @@ export function Editor() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, handleUndo, handleRedo]);
+  }, [handleDeploy, handleUndo, handleRedo]);
 
   if (isLoading) {
     return (
@@ -277,10 +314,6 @@ export function Editor() {
 
         <Panel position="top-left">
           <EditorLeftPanel
-            projectId={projectId || ''}
-            projectName={projectName}
-            currentRevisionId={currentRevisionId}
-            isDirty={isDirty}
             onBack={() => navigate('/')}
             onLoadRevision={handleLoadRevision}
             onLoadLatest={handleLoadLatest}
@@ -291,11 +324,10 @@ export function Editor() {
         <Panel position="top-right">
           <EditorRightPanel
             isDirty={isDirty}
-            isSaving={isSaving}
+            isSaving={deploymentStatus === 'deploying'}
             isDeploying={isDeploying}
             canUndo={canUndo}
             canRedo={canRedo}
-            onSave={handleSave}
             onDeploy={handleDeploy}
             onStop={handleStop}
             onUndo={handleUndo}

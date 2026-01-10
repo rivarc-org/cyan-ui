@@ -35,7 +35,7 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
   const viewMode = useUIStore((s) => s.viewMode);
 
   // Only show status dots in live mode
-  const shouldShowStatus = viewMode.type === 'live';
+  const shouldShowStatus = viewMode === 'live';
   const displayStatus = shouldShowStatus ? (nodeStatus || nodeData.status) : undefined;
 
   const pluginInputs = nodeData.inputs.filter((i: InputDTO) => i.type === 'plugin');

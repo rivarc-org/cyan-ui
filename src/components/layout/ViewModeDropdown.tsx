@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ChevronDown, Radio, Edit3, History } from 'lucide-react';
 import { ToolbarItem } from '@/components/layout/EditorToolbar';
 import {
@@ -9,17 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { useUIStore, type ViewMode } from '@/store/uiStore';
-import { revisionsApi } from '@/api/revisions';
-import type { RevisionSummary } from '@/api/types';
+import { useUIStore } from '@/store/uiStore';
+import { useCanvasStore } from '@/store/canvasStore';
 import { cn } from '@/lib/utils';
 
 interface ViewModeDropdownProps {
-  projectId: string;
-  isDirty: boolean;
   onLoadRevision: (revisionId: string) => Promise<void>;
   onLoadLatest: () => Promise<void>;
-  currentRevisionId?: string;
 }
 
 function formatDate(dateString: string): string {
@@ -32,128 +27,70 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getModeLabel(mode: ViewMode, isDirty: boolean, liveRevision?: RevisionSummary): string {
-  if (mode.type === 'live') {
-    if (isDirty) return 'Draft';
-    return liveRevision ? `Live v${liveRevision.version_number}` : 'Live';
-  }
-  if (mode.type === 'draft') {
-    return 'Draft';
-  }
-  return `v${mode.versionNumber}`;
-}
-
-function getModeIcon(mode: ViewMode, isDirty: boolean) {
-  if (mode.type === 'live' && !isDirty) {
-    return <Radio className="w-6 h-6 text-green-500" />;
-  }
-  if (mode.type === 'draft' || isDirty) {
-    return <Edit3 className="w-6 h-6 text-orange-500" />;
-  }
-  return <History className="w-6 h-6 text-gray-500" />;
-}
-
 export function ViewModeDropdown({
-  projectId,
-  currentRevisionId,
-  isDirty,
   onLoadRevision,
   onLoadLatest,
 }: ViewModeDropdownProps) {
   const viewMode = useUIStore((s) => s.viewMode);
-  const setViewMode = useUIStore((s) => s.setViewMode);
-  const enterLiveMode = useUIStore((s) => s.enterLiveMode);
-  const [revisions, setRevisions] = useState<RevisionSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const revisions = useUIStore((s) => s.revisions);
+  const currentRevisionId = useUIStore((s) => s.currentRevisionId);
+  const activeRevisionId = useUIStore((s) => s.activeRevisionId);
+  const isDirty = useCanvasStore((s) => s.isDirty);
 
-  // Load revisions when dropdown opens
-  const handleOpenChange = async (open: boolean) => {
-    if (open && projectId) {
-      setIsLoading(true);
-      try {
-        const list = await revisionsApi.list(projectId);
-        setRevisions(list);
-      } catch (err) {
-        console.error('Failed to load revisions:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleSelectLive = async () => {
-    await onLoadLatest();
-    enterLiveMode();
-  };
-
-  const handleSelectRevision = async (rev: RevisionSummary) => {
-    await onLoadRevision(rev.id);
-    setViewMode({
-      type: 'revision',
-      revisionId: rev.id,
-      versionNumber: rev.version_number,
-    });
-  };
-
+  // Find the revisions for common labels
   const liveRevision = revisions.find(r => r.id === currentRevisionId);
+  const historyRevisions = revisions.filter(r => !r.is_draft && r.id !== currentRevisionId);
+
+  const getModeLabel = () => {
+    if (isDirty || viewMode === 'draft') return 'Draft';
+    if (viewMode === 'live') return liveRevision ? `v${liveRevision.version_number}` : 'Live';
+    if (viewMode === 'history') {
+      const rev = revisions.find(r => r.id === activeRevisionId);
+      return rev ? `v${rev.version_number}` : 'Revision';
+    }
+    return 'Unknown';
+  };
+
+  const getModeIcon = () => {
+    if (isDirty || viewMode === 'draft') return <Edit3 className="w-6 h-6 text-orange-500" />;
+    return <Radio className="w-6 h-6 text-green-500" />;
+  };
 
   return (
-    <DropdownMenu onOpenChange={handleOpenChange}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <ToolbarItem className="gap-2">
-          {getModeIcon(viewMode, isDirty)}
-          <span className="font-medium text-popover-foreground">{getModeLabel(viewMode, isDirty, liveRevision)}</span>
+          {getModeIcon()}
+          <span className="font-medium text-popover-foreground">{getModeLabel()}</span>
           <ChevronDown className="w-6 h-6 text-gray-400" />
         </ToolbarItem>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem onClick={handleSelectLive}>
-          <Radio className="w-6 h-6 mr-2 text-green-500" />
+      <DropdownMenuContent align="start" className="w-64 max-h-[80vh] overflow-y-auto">
+        {/* Live Option */}
+        <DropdownMenuLabel className="text-xs text-gray-500">Live Revision</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onLoadLatest()} className={cn(viewMode === 'live' && !isDirty && 'bg-accent')}>
+          <Radio className="w-5 h-5 mr-2 text-green-500" />
           <span>Live</span>
           <span className="ml-auto text-xs text-gray-400">
             {liveRevision ? `v${liveRevision.version_number}` : 'current'}
           </span>
         </DropdownMenuItem>
 
-        {isDirty && (
-          <DropdownMenuItem disabled>
-            <Edit3 className="w-6 h-6 mr-2 text-orange-500" />
-            <span>Draft</span>
-            <span className="ml-auto text-xs text-gray-400">unsaved</span>
-          </DropdownMenuItem>
-        )}
-
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-gray-500">
-          History
-        </DropdownMenuLabel>
 
-        {isLoading ? (
-          <div className="px-2 py-4 text-center text-sm text-gray-400">
-            Loading...
-          </div>
-        ) : revisions.filter(r => r.id !== currentRevisionId).length === 0 ? (
-          <div className="px-2 py-4 text-center text-sm text-gray-400">
-            No history yet
-          </div>
+        {/* History Section */}
+        <DropdownMenuLabel className="text-xs text-gray-500">History</DropdownMenuLabel>
+        {historyRevisions.length === 0 ? (
+          <div className="px-2 py-2 text-sm text-gray-400 italic">No history</div>
         ) : (
-          revisions.filter(r => r.id !== currentRevisionId).slice(0, 10).map((rev) => (
+          historyRevisions.map((rev) => (
             <DropdownMenuItem
               key={rev.id}
-              onClick={() => handleSelectRevision(rev)}
-              className={cn(
-                viewMode.type === 'revision' &&
-                viewMode.revisionId === rev.id &&
-                'bg-accent'
-              )}
+              onClick={() => onLoadRevision(rev.id)}
+              className={cn(viewMode === 'history' && activeRevisionId === rev.id && !isDirty && 'bg-accent')}
             >
-              <History className="w-6 h-6 mr-2 text-gray-400" />
+              <History className="w-5 h-5 mr-2 text-gray-400" />
               <span>v{rev.version_number}</span>
-              {rev.is_draft && (
-                <span className="ml-2 text-xs bg-orange-500/20 text-orange-500 px-1 rounded">
-                  draft
-                </span>
-              )}
               <span className="ml-auto text-xs text-gray-400">
                 {formatDate(rev.created_at)}
               </span>

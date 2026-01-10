@@ -16,6 +16,7 @@ interface CanvasState {
   nodes: PluginNode[];
   edges: GraphEdge[];
   isDirty: boolean;
+  isInitialized: boolean;
 
   // Node operations
   onNodesChange: (changes: NodeChange<Node>[]) => void;
@@ -39,6 +40,7 @@ interface CanvasState {
 
   // Bulk operations
   setGraph: (nodes: PluginNode[], edges: GraphEdge[]) => void;
+  setInitialized: (initialized: boolean) => void;
   clearGraph: () => void;
 
   // Dirty state tracking
@@ -55,6 +57,7 @@ export const useCanvasStore = create<CanvasState>()(
       nodes: [],
       edges: [],
       isDirty: false,
+      isInitialized: false,
 
       onNodesChange: (changes) => {
         // Check for drag start/end to batch history
@@ -74,7 +77,7 @@ export const useCanvasStore = create<CanvasState>()(
         // Apply the changes
         set({
           nodes: applyNodeChanges(changes, get().nodes as Node[]) as PluginNode[],
-          isDirty: true,
+          isDirty: get().isInitialized && (get().isDirty || changes.some(c => c.type === 'position' || c.type === 'remove')),
         });
 
         // Resume history after drag ends (captures single entry)
@@ -87,7 +90,7 @@ export const useCanvasStore = create<CanvasState>()(
       onEdgesChange: (changes) => {
         set({
           edges: applyEdgeChanges(changes, get().edges),
-          isDirty: true,
+          isDirty: get().isInitialized && (get().isDirty || changes.some(c => c.type === 'remove')),
         });
       },
 
@@ -131,7 +134,7 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: plugin.id,
             pluginName: plugin.name,
-           
+
             category: plugin.category,
             inputs: plugin.inputs,
             exports: plugin.exports,
@@ -157,7 +160,7 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: 'external://custom',
             pluginName: name,
-            
+
             category: 'external',
             inputs: [],
             exports: [],
@@ -192,15 +195,15 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    inputValues: {
-                      ...node.data.inputValues,
-                      [inputId]: value,
-                    },
+                ...node,
+                data: {
+                  ...node.data,
+                  inputValues: {
+                    ...node.data.inputValues,
+                    [inputId]: value,
                   },
-                }
+                },
+              }
               : node
           ),
           isDirty: true,
@@ -213,14 +216,14 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId && node.data.customFields
               ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    customFields: node.data.customFields.map((field) =>
-                      field.id === fieldId ? { ...field, value } : field
-                    ),
-                  },
-                }
+                ...node,
+                data: {
+                  ...node.data,
+                  customFields: node.data.customFields.map((field) =>
+                    field.id === fieldId ? { ...field, value } : field
+                  ),
+                },
+              }
               : node
           ),
           isDirty: true,
@@ -233,9 +236,9 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                  ...node,
-                  data: { ...node.data, image },
-                }
+                ...node,
+                data: { ...node.data, image },
+              }
               : node
           ),
           isDirty: true,
@@ -243,11 +246,15 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       setGraph: (nodes, edges) => {
-        set({ nodes, edges, isDirty: false });
+        set({ nodes, edges, isDirty: false, isInitialized: false });
+      },
+
+      setInitialized: (isInitialized) => {
+        set({ isInitialized });
       },
 
       clearGraph: () => {
-        set({ nodes: [], edges: [], isDirty: true });
+        set({ nodes: [], edges: [], isDirty: true, isInitialized: false });
       },
 
       markClean: () => {
