@@ -110,12 +110,7 @@ export function NodeInspector() {
               </h4>
               <p className="text-sm font-mono">{selectedNode.data.pluginId}</p>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">
-                Image
-              </h4>
-              <p className="text-sm font-mono">{selectedNode.data.image}</p>
-            </div>
+            
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">
                 Category

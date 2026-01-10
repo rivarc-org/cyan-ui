@@ -11,7 +11,6 @@ import {
 import { useUIStore } from '@/store/uiStore';
 import { useCanvasStore } from '@/store/canvasStore';
 import { pluginsApi } from '@/api/plugins';
-import { guessDefaultImage } from '@/lib/transformers';
 import type { PluginSummary } from '@/api/types';
 
 export function CommandPalette() {
@@ -49,10 +48,10 @@ export function CommandPalette() {
   const handleSelectPlugin = async (pluginId: string) => {
     try {
       const pluginDetail = await pluginsApi.get(pluginId);
-      const defaultImage = guessDefaultImage(pluginDetail.id);
+      
 
       // Add node near center of viewport
-      addNode(pluginDetail, defaultImage, {
+      addNode(pluginDetail, {
         x: 200 + Math.random() * 100,
         y: 200 + Math.random() * 100,
       });

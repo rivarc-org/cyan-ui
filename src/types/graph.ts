@@ -23,7 +23,6 @@ export interface ExternalInputField {
 export interface PluginNodeData extends Record<string, unknown> {
   pluginId: string;
   pluginName: string;
-  image: string;
   category: 'worker' | 'stateful' | 'external';
   inputs: InputDTO[];
   exports: ExportDTO[];

@@ -11,7 +11,7 @@ export function AddNodeMenu() {
   const [isExternalDialogOpen, setIsExternalDialogOpen] = useState(false);
 
   const handleAddExternalService = (config: ExternalServiceConfig) => {
-    addExternalNode(config.name, config.image, config.fields);
+    addExternalNode(config.name, config.fields);
   };
 
   return (

@@ -25,12 +25,10 @@ interface CanvasState {
   // CRUD operations
   addNode: (
     plugin: PluginDetailResponse,
-    image: string,
     position?: { x: number; y: number }
   ) => string;
   addExternalNode: (
     name: string,
-    image: string,
     fields: ExternalInputField[],
     position?: { x: number; y: number }
   ) => string;
@@ -123,7 +121,7 @@ export const useCanvasStore = create<CanvasState>()(
         });
       },
 
-      addNode: (plugin, image, position) => {
+      addNode: (plugin, position) => {
         const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         const newNode: PluginNode = {
@@ -133,7 +131,7 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: plugin.id,
             pluginName: plugin.name,
-            image,
+           
             category: plugin.category,
             inputs: plugin.inputs,
             exports: plugin.exports,
@@ -149,7 +147,7 @@ export const useCanvasStore = create<CanvasState>()(
         return nodeId;
       },
 
-      addExternalNode: (name, image, fields, position) => {
+      addExternalNode: (name, fields, position) => {
         const nodeId = `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         const newNode: PluginNode = {
@@ -159,7 +157,7 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: 'external://custom',
             pluginName: name,
-            image,
+            
             category: 'external',
             inputs: [],
             exports: [],
