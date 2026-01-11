@@ -35,7 +35,7 @@ export function backendToFlow(
     const flowNode: PluginNode = {
       id: backendNode.id,
       type: 'plugin',
-      position: calculatePosition(index),
+      position: backendNode.position || calculatePosition(index),
       data: {
         pluginId: plugin.id,
         pluginName: plugin.name,
@@ -114,6 +114,7 @@ export function flowToBackend(
       id: node.id,
       plugin_id: node.data.pluginId,
       inputs,
+      position: node.position,
     };
   });
 

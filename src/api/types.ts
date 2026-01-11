@@ -44,6 +44,7 @@ export interface NodeStateDTO {
   version?: string;
   exports?: string[];
   inputs: Record<string, string>;
+  position?: { x: number; y: number };
 }
 
 export interface CreateRevisionRequest {
