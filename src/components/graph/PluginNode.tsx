@@ -4,8 +4,8 @@ import type { PluginNodeData, ExternalInputField } from '@/types/graph';
 import type { InputDTO } from '@/api/types';
 import { InputHandle, ExportHandle } from './PluginHandle';
 import { SecureInput } from './SecureInput';
-import { useCanvasStore } from '@/store/canvasStore';
-import { useUIStore } from '@/store/uiStore';
+import { useGraphStore } from '@/stores/graphStore';
+import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils';
 
 const NODE_WIDTH = 280;
@@ -28,15 +28,13 @@ interface PluginNodeProps {
 
 function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
   const nodeData = data;
-  const updateNodeInput = useCanvasStore((s) => s.updateNodeInput);
-  const updateExternalField = useCanvasStore((s) => s.updateExternalField);
+  const updateNodeInput = useGraphStore((s) => s.updateNodeInput);
+  const updateExternalField = useGraphStore((s) => s.updateExternalField);
   const openInspector = useUIStore((s) => s.openInspector);
   const nodeStatus = useUIStore((s) => s.nodeStatuses.get(id));
-  const viewMode = useUIStore((s) => s.viewMode);
 
-  // Only show status dots in live mode
-  const shouldShowStatus = viewMode === 'live';
-  const displayStatus = shouldShowStatus ? (nodeStatus || nodeData.status) : undefined;
+  // Show status when available (from WebSocket events)
+  const displayStatus = nodeStatus || nodeData.status;
 
   const pluginInputs = nodeData.inputs.filter((i: InputDTO) => i.type === 'plugin');
 

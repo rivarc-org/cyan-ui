@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Database, Server } from 'lucide-react';
 import {
   CommandDialog,
@@ -8,29 +8,17 @@ import {
   CommandGroup,
   CommandItem,
 } from '@/components/ui/command';
-import { useUIStore } from '@/store/uiStore';
-import { useCanvasStore } from '@/store/canvasStore';
-import { pluginsApi } from '@/api/plugins';
-import type { PluginSummary } from '@/api/types';
+import { useUIStore } from '@/stores/uiStore';
+import { useGraphStore } from '@/stores/graphStore';
+import { usePluginList } from '@/queries/usePlugins';
 
 export function CommandPalette() {
   const isOpen = useUIStore((s) => s.isCommandPaletteOpen);
   const close = useUIStore((s) => s.closeCommandPalette);
-  const addNode = useCanvasStore((s) => s.addNode);
+  const addNode = useGraphStore((s) => s.addNode);
 
-  const [plugins, setPlugins] = useState<PluginSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true);
-      pluginsApi
-        .list()
-        .then(setPlugins)
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    }
-  }, [isOpen]);
+  // Use React Query for plugin list
+  const { data: plugins = [], isLoading } = usePluginList();
 
   // Keyboard shortcut to open
   useEffect(() => {
@@ -47,8 +35,13 @@ export function CommandPalette() {
 
   const handleSelectPlugin = async (pluginId: string) => {
     try {
+      // Get plugin detail from cache or fetch
+      const plugin = plugins.find((p) => p.id === pluginId);
+      if (!plugin) return;
+
+      // Fetch full plugin details
+      const { pluginsApi } = await import('@/api/plugins');
       const pluginDetail = await pluginsApi.get(pluginId);
-      
 
       // Add node near center of viewport
       addNode(pluginDetail, {

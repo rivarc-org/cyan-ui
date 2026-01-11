@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Plus, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalServiceDialog, type ExternalServiceConfig } from '@/components/dialogs/ExternalServiceDialog';
-import { useUIStore } from '@/store/uiStore';
-import { useCanvasStore } from '@/store/canvasStore';
+import { useUIStore } from '@/stores/uiStore';
+import { useGraphStore } from '@/stores/graphStore';
 
 export function AddNodeMenu() {
   const openCommandPalette = useUIStore((s) => s.openCommandPalette);
-  const addExternalNode = useCanvasStore((s) => s.addExternalNode);
+  const addExternalNode = useGraphStore((s) => s.addExternalNode);
   const [isExternalDialogOpen, setIsExternalDialogOpen] = useState(false);
 
   const handleAddExternalService = (config: ExternalServiceConfig) => {

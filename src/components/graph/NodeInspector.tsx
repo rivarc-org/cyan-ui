@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUIStore } from '@/store/uiStore';
-import { useCanvasStore } from '@/store/canvasStore';
+import { useUIStore } from '@/stores/uiStore';
+import { useGraphStore } from '@/stores/graphStore';
 import { useContainerLogs } from '@/hooks/useContainerLogs';
 
 export function NodeInspector() {
@@ -19,7 +19,7 @@ export function NodeInspector() {
   const isOpen = useUIStore((s) => s.isInspectorOpen);
   const closeInspector = useUIStore((s) => s.closeInspector);
   const selectedNodeId = useUIStore((s) => s.selectedNodeId);
-  const nodes = useCanvasStore((s) => s.nodes);
+  const nodes = useGraphStore((s) => s.nodes);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 

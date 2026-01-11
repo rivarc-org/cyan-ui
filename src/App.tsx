@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Dashboard } from '@/pages/Dashboard';
 import { Editor } from '@/pages/Editor';
-import { initializeTheme } from '@/store/themeStore';
+import { QueryProvider } from '@/providers/QueryProvider';
+import { initializeTheme } from '@/stores/themeStore';
 
 function App() {
   useEffect(() => {
@@ -10,12 +11,14 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/project/:id" element={<Editor />} />
-      </Routes>
-    </BrowserRouter>
+    <QueryProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/project/:id" element={<Editor />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryProvider>
   );
 }
 

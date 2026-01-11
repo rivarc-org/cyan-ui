@@ -1,34 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { projectsApi } from '@/api/projects';
 import { CreateProjectDialog } from '@/components/dialogs/CreateProjectDialog';
+import { useProjects, useDeleteProject } from '@/queries/useProjects';
 import type { ProjectResponse } from '@/api/types';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<ProjectResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    try {
-      const data = await projectsApi.list();
-      setProjects(data);
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use React Query for projects
+  const { data: projects = [], isLoading } = useProjects();
+  const deleteProjectMutation = useDeleteProject();
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,8 +28,7 @@ export function Dashboard() {
 
     setDeletingId(id);
     try {
-      await projectsApi.delete(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+      await deleteProjectMutation.mutateAsync(id);
     } catch (err) {
       console.error('Failed to delete project:', err);
     } finally {
@@ -46,7 +37,6 @@ export function Dashboard() {
   };
 
   const handleProjectCreated = (project: ProjectResponse) => {
-    setProjects((prev) => [...prev, project]);
     setIsCreateOpen(false);
     navigate(`/project/${project.id}`);
   };
@@ -58,7 +48,9 @@ export function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">CyanStack</h1>
-            <p className="text-muted-foreground">Visual orchestration made simple</p>
+            <p className="text-muted-foreground">
+              Visual orchestration made simple
+            </p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />

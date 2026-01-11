@@ -1,5 +1,5 @@
 import { Sun, Moon, Monitor } from 'lucide-react';
-import { useThemeStore } from '@/store/themeStore';
+import { useThemeStore } from '@/stores/themeStore';
 import { ToolbarItem } from '@/components/layout/EditorToolbar';
 import {
   DropdownMenu,

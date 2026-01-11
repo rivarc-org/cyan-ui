@@ -48,6 +48,7 @@ export interface NodeStateDTO {
 
 export interface CreateRevisionRequest {
   graph_state: GraphStateDTO;
+  is_draft?: boolean;
 }
 
 // Plugin types

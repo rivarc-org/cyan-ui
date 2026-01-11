@@ -14,10 +14,10 @@ export const revisionsApi = {
       `/projects/${projectId}/revisions/${revisionId}`
     ),
 
-  create: (projectId: string, graphState: GraphStateDTO) =>
+  create: (projectId: string, graphState: GraphStateDTO, isDraft: boolean = true) =>
     apiRequest<RevisionDetailResponse>(`/projects/${projectId}/revisions`, {
       method: 'POST',
-      body: JSON.stringify({ graph_state: graphState }),
+      body: JSON.stringify({ graph_state: graphState, is_draft: isDraft }),
     }),
 
   delete: (projectId: string, revisionId: string) =>

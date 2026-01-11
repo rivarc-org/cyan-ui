@@ -11,43 +11,60 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
-import { Toolbar, ToolbarGroup, ToolbarItem, ToolbarLabel, ToolbarSeparator } from '@/components/layout/EditorToolbar';
+import {
+  Toolbar,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarLabel,
+  ToolbarSeparator,
+} from '@/components/layout/EditorToolbar';
 import { cn } from '@/lib/utils';
-import { useCanvasStore } from '@/store/canvasStore';
-import { useUIStore } from '@/store/uiStore';
+import { useGraphStore } from '@/stores/graphStore';
 import { flowToBackend } from '@/lib/transformers';
+import type { ViewMode } from '@/hooks/useProjectController';
+import type { RevisionSummary } from '@/api/types';
 
+interface EditorLeftPanelProps {
+  projectName?: string;
+  viewMode: ViewMode;
+  revisions: RevisionSummary[];
+  currentRevisionId: string | null;
+  activeRevisionId: string | null;
+  isDirty: boolean;
+  onBack: () => void;
+  onLoadRevision: (revisionId: string) => void;
+  onLoadLive: () => void;
+}
 
-interface FloatingBarProps {
-  projectId: string;
-  projectName: string;
+interface EditorRightPanelProps {
+  viewMode: ViewMode;
   isDirty: boolean;
   isSaving: boolean;
   isDeploying: boolean;
   canUndo: boolean;
   canRedo: boolean;
-  onBack: () => void;
   onDeploy: () => void;
-  onStop?: () => void;
+  onStop: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onLoadRevision: (revisionId: string) => Promise<void>;
-  onLoadLatest: () => Promise<void>;
-  currentRevisionId?: string;
 }
 
-
-
 export function EditorLeftPanel({
-  onLoadRevision,
-  onLoadLatest,
+  projectName,
+  viewMode,
+  revisions,
+  currentRevisionId,
+  activeRevisionId,
+  isDirty,
   onBack,
-}: Pick<FloatingBarProps, 'onLoadRevision' | 'onLoadLatest' | 'onBack'>) {
+  onLoadRevision,
+  onLoadLive,
+}: EditorLeftPanelProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    const nodes = useCanvasStore.getState().nodes;
-    const edges = useCanvasStore.getState().edges;
+    const nodes = useGraphStore.getState().nodes;
+    const edges = useGraphStore.getState().edges;
     const graphState = flowToBackend(nodes, edges);
 
     await navigator.clipboard.writeText(JSON.stringify(graphState, null, 2));
@@ -65,17 +82,26 @@ export function EditorLeftPanel({
       </ToolbarGroup>
 
       <ToolbarGroup>
-        <ToolbarLabel>{useUIStore(s => s.projectName)}</ToolbarLabel>
+        <ToolbarLabel>{projectName}</ToolbarLabel>
         <ToolbarSeparator />
         <ViewModeDropdown
+          viewMode={viewMode}
+          revisions={revisions}
+          currentRevisionId={currentRevisionId}
+          activeRevisionId={activeRevisionId}
+          isDirty={isDirty}
           onLoadRevision={onLoadRevision}
-          onLoadLatest={onLoadLatest}
+          onLoadLive={onLoadLive}
         />
       </ToolbarGroup>
 
       <ToolbarGroup>
         <ToolbarItem onClick={handleCopy} title="Copy graph JSON to clipboard">
-          {copied ? <Check className="w-6 h-6 text-green-500" /> : <Copy className="w-6 h-6" />}
+          {copied ? (
+            <Check className="w-6 h-6 text-green-500" />
+          ) : (
+            <Copy className="w-6 h-6" />
+          )}
         </ToolbarItem>
       </ToolbarGroup>
 
@@ -87,6 +113,7 @@ export function EditorLeftPanel({
 }
 
 export function EditorRightPanel({
+  viewMode,
   isDirty,
   isSaving,
   isDeploying,
@@ -96,16 +123,11 @@ export function EditorRightPanel({
   onStop,
   onUndo,
   onRedo,
-}: Omit<FloatingBarProps, 'projectId' | 'projectName' | 'onBack' | 'onLoadRevision' | 'onLoadLatest' | 'onSave'>) {
-
+}: EditorRightPanelProps) {
   return (
     <Toolbar>
       <ToolbarGroup>
-        <ToolbarItem
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo (Cmd+Z)"
-        >
+        <ToolbarItem onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
           <Undo2 className="w-6 h-6" />
         </ToolbarItem>
         <ToolbarSeparator />
@@ -119,7 +141,7 @@ export function EditorRightPanel({
       </ToolbarGroup>
 
       <ToolbarGroup>
-        {useUIStore.getState().viewMode === 'live' && !isDirty && onStop ? (
+        {viewMode === 'live' && !isDirty && onStop ? (
           <ToolbarItem
             onClick={onStop}
             disabled={isDeploying}
@@ -137,7 +159,8 @@ export function EditorRightPanel({
             onClick={onDeploy}
             disabled={isDeploying}
             className={cn(
-              !isDeploying && 'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
+              !isDeploying &&
+                'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
             )}
             title="Deploy (Cmd+S)"
           >

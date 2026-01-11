@@ -1,24 +1,23 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import type {
-  Connection,
-  EdgeChange,
-  NodeChange,
-  Node,
-} from '@xyflow/react';
+import type { Connection, EdgeChange, NodeChange, Node } from '@xyflow/react';
 import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import type { PluginNode, GraphEdge, ExternalInputField } from '@/types/graph';
-import type { PluginDetailResponse } from '@/api/types';
-import { buildDefaultInputValues } from '@/lib/transformers';
+import type { GraphStateDTO, PluginDetailResponse } from '@/api/types';
+import {
+  backendToFlow,
+  flowToBackend,
+  buildDefaultInputValues,
+} from '@/lib/transformers';
 
-interface CanvasState {
+interface GraphState {
   // Graph data
   nodes: PluginNode[];
   edges: GraphEdge[];
   isDirty: boolean;
   isInitialized: boolean;
 
-  // Node operations
+  // React Flow handlers
   onNodesChange: (changes: NodeChange<Node>[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
@@ -38,6 +37,15 @@ interface CanvasState {
   updateExternalField: (nodeId: string, fieldId: string, value: string) => void;
   updateNodeImage: (nodeId: string, image: string) => void;
 
+  // Canvas loading from backend
+  loadCanvas: (
+    graphState: GraphStateDTO,
+    pluginMap: Map<string, PluginDetailResponse>
+  ) => void;
+
+  // Get current state for backend
+  getGraphState: () => GraphStateDTO;
+
   // Bulk operations
   setGraph: (nodes: PluginNode[], edges: GraphEdge[]) => void;
   setInitialized: (initialized: boolean) => void;
@@ -51,7 +59,7 @@ interface CanvasState {
 let isDragging = false;
 
 // Create store with temporal middleware for undo/redo
-export const useCanvasStore = create<CanvasState>()(
+export const useGraphStore = create<GraphState>()(
   temporal(
     (set, get) => ({
       nodes: [],
@@ -62,7 +70,9 @@ export const useCanvasStore = create<CanvasState>()(
       onNodesChange: (changes) => {
         // Check for drag start/end to batch history
         const positionChanges = changes.filter(
-          (c): c is NodeChange<Node> & { type: 'position'; dragging?: boolean } =>
+          (
+            c
+          ): c is NodeChange<Node> & { type: 'position'; dragging?: boolean } =>
             c.type === 'position'
         );
         const dragStart = positionChanges.some((c) => c.dragging === true);
@@ -71,26 +81,31 @@ export const useCanvasStore = create<CanvasState>()(
         // Pause history during drag to avoid per-frame entries
         if (dragStart && !isDragging) {
           isDragging = true;
-          useCanvasStore.temporal.getState().pause();
+          useGraphStore.temporal.getState().pause();
         }
 
         // Apply the changes
         set({
           nodes: applyNodeChanges(changes, get().nodes as Node[]) as PluginNode[],
-          isDirty: get().isInitialized && (get().isDirty || changes.some(c => c.type === 'position' || c.type === 'remove')),
+          isDirty:
+            get().isInitialized &&
+            (get().isDirty ||
+              changes.some((c) => c.type === 'position' || c.type === 'remove')),
         });
 
         // Resume history after drag ends (captures single entry)
         if (dragEnd && isDragging) {
           isDragging = false;
-          useCanvasStore.temporal.getState().resume();
+          useGraphStore.temporal.getState().resume();
         }
       },
 
       onEdgesChange: (changes) => {
         set({
           edges: applyEdgeChanges(changes, get().edges),
-          isDirty: get().isInitialized && (get().isDirty || changes.some(c => c.type === 'remove')),
+          isDirty:
+            get().isInitialized &&
+            (get().isDirty || changes.some((c) => c.type === 'remove')),
         });
       },
 
@@ -134,7 +149,7 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: plugin.id,
             pluginName: plugin.name,
-
+            image: plugin.image,
             category: plugin.category,
             inputs: plugin.inputs,
             exports: plugin.exports,
@@ -160,7 +175,6 @@ export const useCanvasStore = create<CanvasState>()(
           data: {
             pluginId: 'external://custom',
             pluginName: name,
-
             category: 'external',
             inputs: [],
             exports: [],
@@ -195,15 +209,15 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  inputValues: {
-                    ...node.data.inputValues,
-                    [inputId]: value,
+                  ...node,
+                  data: {
+                    ...node.data,
+                    inputValues: {
+                      ...node.data.inputValues,
+                      [inputId]: value,
+                    },
                   },
-                },
-              }
+                }
               : node
           ),
           isDirty: true,
@@ -216,14 +230,14 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId && node.data.customFields
               ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  customFields: node.data.customFields.map((field) =>
-                    field.id === fieldId ? { ...field, value } : field
-                  ),
-                },
-              }
+                  ...node,
+                  data: {
+                    ...node.data,
+                    customFields: node.data.customFields.map((field) =>
+                      field.id === fieldId ? { ...field, value } : field
+                    ),
+                  },
+                }
               : node
           ),
           isDirty: true,
@@ -236,13 +250,44 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                ...node,
-                data: { ...node.data, image },
-              }
+                  ...node,
+                  data: { ...node.data, image },
+                }
               : node
           ),
           isDirty: true,
         });
+      },
+
+      /**
+       * Load a canvas from backend GraphStateDTO.
+       * Clears undo history and resets dirty state.
+       */
+      loadCanvas: (graphState, pluginMap) => {
+        const { nodes, edges } = backendToFlow(graphState, pluginMap);
+
+        set({
+          nodes,
+          edges,
+          isDirty: false,
+          isInitialized: false,
+        });
+
+        // Clear undo history when loading new canvas
+        useGraphStore.temporal.getState().clear();
+
+        // Schedule initialization to enable dirty tracking
+        setTimeout(() => {
+          set({ isInitialized: true });
+        }, 50);
+      },
+
+      /**
+       * Get current graph state in backend format.
+       */
+      getGraphState: () => {
+        const { nodes, edges } = get();
+        return flowToBackend(nodes, edges);
       },
 
       setGraph: (nodes, edges) => {
@@ -272,5 +317,8 @@ export const useCanvasStore = create<CanvasState>()(
   )
 );
 
+// Backward compatibility alias - remove after migration
+export const useCanvasStore = useGraphStore;
+
 // Helper for temporal hooks
-export const useTemporalStore = () => useCanvasStore.temporal;
+export const useTemporalStore = () => useGraphStore.temporal;

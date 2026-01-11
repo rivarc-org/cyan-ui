@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useWebSocket } from './useWebSocket';
-import { useUIStore } from '@/store/uiStore';
+import { useUIStore } from '@/stores/uiStore';
 import type {
   DeploymentEvent,
   NodeProgressData,

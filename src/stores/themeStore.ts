@@ -11,7 +11,9 @@ interface ThemeState {
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 function applyTheme(theme: Theme) {
@@ -51,9 +53,11 @@ export function initializeTheme() {
   applyTheme(theme);
 
   // Listen for system theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (useThemeStore.getState().theme === 'system') {
-      applyTheme('system');
-    }
-  });
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', () => {
+      if (useThemeStore.getState().theme === 'system') {
+        applyTheme('system');
+      }
+    });
 }
