@@ -370,10 +370,15 @@ export function useProjectController(): ProjectControllerResult {
         revisionToDeploy = await save();
       }
 
+      const revisionID = revisionToDeploy || currentRevisionId;
+      if (!revisionID) {
+        throw new Error('No revision ID found to deploy');
+      }
+
       // Deploy the draft (or current revision if no draft)
       await deployMutation.mutateAsync({
         projectId,
-        revisionId: revisionToDeploy || currentRevisionId || undefined,
+        revisionId: revisionID,
       });
 
       // Refresh data

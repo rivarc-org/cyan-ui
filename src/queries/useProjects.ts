@@ -73,7 +73,7 @@ export function useDeployProject() {
       revisionId,
     }: {
       projectId: string;
-      revisionId?: string;
+      revisionId: string;
     }) => projectsApi.deploy(projectId, revisionId),
     onSuccess: (_, { projectId }) => {
       // Refresh project to get updated current_revision_id

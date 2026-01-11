@@ -21,10 +21,10 @@ export const projectsApi = {
   delete: (id: string) =>
     apiRequest<void>(`/projects/${id}`, { method: 'DELETE' }),
 
-  deploy: (id: string, revisionId?: string) =>
+  deploy: (id: string, revisionId: string) =>
     apiRequest<DeployResponse>(`/projects/${id}/deploy`, {
       method: 'POST',
-      body: JSON.stringify(revisionId ? { revision_id: revisionId } : {}),
+      body: JSON.stringify({ revision_id: revisionId }),
     }),
 
   stop: (id: string) =>
