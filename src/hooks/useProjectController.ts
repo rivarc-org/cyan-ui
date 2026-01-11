@@ -8,6 +8,7 @@ import {
   useRevision,
   useCreateRevision,
   useUpdateRevision,
+  useDeleteRevision,
 } from '@/queries/useRevisions';
 import { usePluginList, usePluginDetails } from '@/queries/usePlugins';
 import { useGraphStore } from '@/stores/graphStore';
@@ -43,6 +44,7 @@ interface ProjectControllerResult {
   save: () => Promise<string | null>;
   deploy: () => Promise<void>;
   stop: () => Promise<void>;
+  deleteDraft: (revisionId: string) => Promise<void>;
 
   // Graph access
   isDirty: boolean;
@@ -135,6 +137,7 @@ export function useProjectController(): ProjectControllerResult {
 
   const createRevisionMutation = useCreateRevision();
   const updateRevisionMutation = useUpdateRevision();
+  const deleteRevisionMutation = useDeleteRevision();
   const deployMutation = useDeployProject();
   const stopMutation = useStopProject();
 
@@ -426,6 +429,23 @@ export function useProjectController(): ProjectControllerResult {
     }
   }, [projectId, stopMutation, setDeploymentStatus, clearNodeStatuses]);
 
+  const deleteDraft = useCallback(async (revisionId: string) => {
+    if (!projectId) return;
+
+    try {
+      await deleteRevisionMutation.mutateAsync({ projectId, revisionId });
+
+      // If we're currently viewing the deleted draft, switch to live
+      if (revisionIdFromUrl === revisionId || draftRevisionId === revisionId) {
+        setDraftRevisionId(null);
+        loadedRevisionRef.current = null;
+        setSearchParams({}, { replace: true });
+      }
+    } catch (err) {
+      console.error('Delete draft failed:', err);
+    }
+  }, [projectId, deleteRevisionMutation, revisionIdFromUrl, draftRevisionId, setSearchParams]);
+
   // ===== RETURN =====
 
   const isLoading =
@@ -449,6 +469,7 @@ export function useProjectController(): ProjectControllerResult {
     save,
     deploy,
     stop,
+    deleteDraft,
     isDirty,
     markClean,
   };

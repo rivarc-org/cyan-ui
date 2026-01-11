@@ -38,6 +38,7 @@ export function Editor() {
     save,
     deploy,
     stop,
+    deleteDraft,
     isDirty,
   } = useProjectController();
 
@@ -135,6 +136,7 @@ export function Editor() {
             onBack={() => navigate('/')}
             onLoadRevision={loadRevision}
             onLoadLive={loadLive}
+            onDeleteDraft={deleteDraft}
           />
         </Panel>
 

@@ -9,9 +9,6 @@ interface InputHandleProps {
 }
 
 export function InputHandle({ input, index, totalInputs }: InputHandleProps) {
-  // Only plugin-type inputs get connection handles
-  if (input.type !== 'plugin') return null;
-
   // Calculate vertical position (evenly distributed)
   const topPercent = ((index + 1) / (totalInputs + 1)) * 100;
 
@@ -30,18 +27,21 @@ export function InputHandle({ input, index, totalInputs }: InputHandleProps) {
 }
 
 interface ExportHandleProps {
-  hasExports: boolean;
+  id: string;
+  index: number;
+  totalExports: number;
 }
 
-export function ExportHandle({ hasExports }: ExportHandleProps) {
-  if (!hasExports) return null;
+export function ExportHandle({ id, index, totalExports }: ExportHandleProps) {
+  // Calculate vertical position (evenly distributed)
+  const topPercent = ((index + 1) / (totalExports + 1)) * 100;
 
   return (
     <Handle
       type="source"
       position={Position.Right}
-      id="export"
-      style={{ top: '50%' }}
+      id={id}
+      style={{ top: `${topPercent}%` }}
       className={cn(
         'w-3 h-3 !bg-green-500 border-2 border-white',
         'hover:!bg-green-600 transition-colors'

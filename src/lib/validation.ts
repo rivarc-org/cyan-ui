@@ -33,18 +33,20 @@ export function isValidConnection(
     return false;
   }
 
-  // Rule 2 & 3: Check if target handle is a plugin input that accepts source's plugin
+  // Rule 2 & 3: Check if target handle is a valid input
   const targetInput = targetNode.data.inputs.find(
-    (i) => i.id === targetHandle && i.type === 'plugin'
+    (i) => i.id === targetHandle
   );
 
   if (!targetInput) {
-    return false; // Target handle is not a plugin-type input
+    return false; // Target handle is not an input
   }
 
-  // Check if the source plugin matches what this input accepts
-  if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
-    return false; // Plugin type mismatch
+  // If the input expects a specific plugin, check compatibility
+  if (targetInput.type === 'plugin') {
+    if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
+      return false; // Plugin type mismatch
+    }
   }
 
   return true;

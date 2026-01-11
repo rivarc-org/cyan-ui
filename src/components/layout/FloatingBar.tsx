@@ -35,6 +35,7 @@ interface EditorLeftPanelProps {
   onBack: () => void;
   onLoadRevision: (revisionId: string) => void;
   onLoadLive: () => void;
+  onDeleteDraft: (revisionId: string) => void;
 }
 
 interface EditorRightPanelProps {
@@ -61,6 +62,7 @@ export function EditorLeftPanel({
   onBack,
   onLoadRevision,
   onLoadLive,
+  onDeleteDraft,
 }: EditorLeftPanelProps) {
   const [copied, setCopied] = useState(false);
 
@@ -94,6 +96,7 @@ export function EditorLeftPanel({
           isDirty={isDirty}
           onLoadRevision={onLoadRevision}
           onLoadLive={onLoadLive}
+          onDeleteDraft={onDeleteDraft}
         />
       </ToolbarGroup>
 

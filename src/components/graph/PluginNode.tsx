@@ -36,14 +36,31 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
   // Show status when available (from WebSocket events)
   const displayStatus = nodeStatus || nodeData.status;
 
-  const pluginInputs = nodeData.inputs.filter((i: InputDTO) => i.type === 'plugin');
+  // Determine Left Handles (Inputs)
+  // For External nodes: Only plugin inputs are inputs (others are fields/outputs)
+  // For Plugin nodes: All inputs are inputs
+  const leftInputs = nodeData.isExternal
+    ? nodeData.inputs.filter((i: InputDTO) => i.type === 'plugin')
+    : nodeData.inputs.filter((i: InputDTO) => i.id !== 'INTERNAL_PORT');
 
-  // Only external nodes get editable inputs
-  const editableInputs = nodeData.isExternal
-    ? nodeData.inputs.filter(
-      (i: InputDTO) => i.type !== 'plugin' && !i.generate && i.id !== 'INTERNAL_PORT'
-    )
-    : [];
+  // Determine Right Handles (Outputs)
+  // For External nodes: Fields (editable inputs + custom fields) are outputs
+  // For Plugin nodes: Exports are outputs
+  let rightOutputs: { id: string }[] = [];
+  
+  const editableInputs = nodeData.inputs.filter(
+    (i: InputDTO) => i.type !== 'plugin' && !i.generate && i.id !== 'INTERNAL_PORT'
+  );
+
+  if (nodeData.isExternal) {
+    const customs = nodeData.customFields || [];
+    rightOutputs = [
+      ...editableInputs.map(i => ({ id: i.id })),
+      ...customs.map(f => ({ id: f.id }))
+    ];
+  } else {
+    rightOutputs = nodeData.exports.map(e => ({ id: e.key }));
+  }
 
   // Choose icon based on category
   const CategoryIcon = nodeData.category === 'external'
@@ -64,18 +81,25 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
       )}
       style={{ width: NODE_WIDTH }}
     >
-      {/* Handles - Left side for plugin inputs */}
-      {pluginInputs.map((input, idx) => (
+      {/* Handles - Left side for inputs */}
+      {leftInputs.map((input, idx) => (
         <InputHandle
           key={input.id}
           input={input}
           index={idx}
-          totalInputs={pluginInputs.length}
+          totalInputs={leftInputs.length}
         />
       ))}
 
-      {/* Handle - Right side for exports */}
-      <ExportHandle hasExports={nodeData.exports.length > 0 || !!nodeData.isExternal} />
+      {/* Handles - Right side for outputs */}
+      {rightOutputs.map((output, idx) => (
+        <ExportHandle
+          key={output.id}
+          id={output.id}
+          index={idx}
+          totalExports={rightOutputs.length}
+        />
+      ))}
 
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
@@ -111,8 +135,8 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
       <div className="p-3 space-y-3">
 
 
-        {/* Plugin connection labels (left side) */}
-        {pluginInputs.map((input: InputDTO) => (
+        {/* Plugin/Left Inputs labels */}
+        {leftInputs.map((input: InputDTO) => (
           <div
             key={input.id}
             className="flex items-center gap-2 text-xs text-muted-foreground"
@@ -129,8 +153,8 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
           </div>
         ))}
 
-        {/* Editable input fields (external nodes only) */}
-        {editableInputs.map((input: InputDTO) => (
+        {/* Editable input fields (Only for external nodes, they act as outputs visually but inputs data-wise) */}
+        {nodeData.isExternal && editableInputs.map((input: InputDTO) => (
           <div key={input.id} className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">
               {input.id.replace(/_/g, ' ')}

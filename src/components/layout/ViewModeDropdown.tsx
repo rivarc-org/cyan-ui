@@ -1,4 +1,5 @@
-import { ChevronDown, Radio, Edit3, History } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Radio, Edit3, History, Trash2 } from 'lucide-react';
 import { ToolbarItem } from '@/components/layout/EditorToolbar';
 import {
   DropdownMenu,
@@ -8,6 +9,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ViewMode } from '@/hooks/useProjectController';
 import type { RevisionSummary } from '@/api/types';
@@ -20,6 +30,7 @@ interface ViewModeDropdownProps {
   isDirty: boolean;
   onLoadRevision: (revisionId: string) => void;
   onLoadLive: () => void;
+  onDeleteDraft: (revisionId: string) => void;
 }
 
 function formatDate(dateString: string): string {
@@ -40,7 +51,11 @@ export function ViewModeDropdown({
   isDirty,
   onLoadRevision,
   onLoadLive,
+  onDeleteDraft,
 }: ViewModeDropdownProps) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState<RevisionSummary | null>(null);
+
   // Categorize revisions
   const liveRevision = revisions.find((r) => r.id === currentRevisionId);
   const draftRevisions = revisions.filter((r) => r.is_draft);
@@ -127,9 +142,16 @@ export function ViewModeDropdown({
               >
                 <Edit3 className="w-5 h-5 mr-2 text-orange-500" />
                 <span>v{rev.version_number}</span>
-                <span className="ml-auto text-xs text-gray-400">
-                  {formatDate(rev.created_at)}
-                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDraftToDelete(rev);
+                    setDeleteConfirmOpen(true);
+                  }}
+                  className="ml-auto p-1 rounded hover:bg-destructive/20 text-gray-400 hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </DropdownMenuItem>
             ))}
           </>
@@ -160,6 +182,34 @@ export function ViewModeDropdown({
           ))
         )}
       </DropdownMenuContent>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Draft</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete draft v{draftToDelete?.version_number}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (draftToDelete) {
+                  onDeleteDraft(draftToDelete.id);
+                }
+                setDeleteConfirmOpen(false);
+                setDraftToDelete(null);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DropdownMenu>
   );
 }
