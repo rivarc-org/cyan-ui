@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { projectsApi } from '@/api/projects';
+import { useCreateProject } from '@/queries/useProjects';
 import type { ProjectResponse } from '@/api/types';
 
 interface CreateProjectDialogProps {
@@ -24,8 +24,8 @@ export function CreateProjectDialog({
   onCreated,
 }: CreateProjectDialogProps) {
   const [name, setName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const createProjectMutation = useCreateProject();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,19 +35,21 @@ export function CreateProjectDialog({
       return;
     }
 
-    setIsCreating(true);
     setError(null);
 
     try {
-      const response = await projectsApi.create({ name: name.trim() });
+      const response = await createProjectMutation.mutateAsync({
+        name: name.trim(),
+      });
       setName('');
       onCreated(response.project);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project');
-    } finally {
-      setIsCreating(false);
     }
   };
+
+  const isCreating = createProjectMutation.isPending;
+
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
