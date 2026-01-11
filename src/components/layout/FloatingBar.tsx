@@ -8,6 +8,7 @@ import {
   Loader2,
   Copy,
   Check,
+  Save,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
@@ -43,6 +44,7 @@ interface EditorRightPanelProps {
   isDeploying: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  onSave: () => void;
   onDeploy: () => void;
   onStop: () => void;
   onUndo: () => void;
@@ -119,6 +121,7 @@ export function EditorRightPanel({
   isDeploying,
   canUndo,
   canRedo,
+  onSave,
   onDeploy,
   onStop,
   onUndo,
@@ -137,6 +140,20 @@ export function EditorRightPanel({
           title="Redo (Cmd+Shift+Z)"
         >
           <Redo2 className="w-6 h-6" />
+        </ToolbarItem>
+      </ToolbarGroup>
+
+      <ToolbarGroup>
+        <ToolbarItem
+          onClick={onSave}
+          disabled={!isDirty || isSaving}
+          title="Save (Cmd+S)"
+        >
+          {isSaving ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <Save className="w-6 h-6" />
+          )}
         </ToolbarItem>
       </ToolbarGroup>
 
@@ -160,9 +177,9 @@ export function EditorRightPanel({
             disabled={isDeploying}
             className={cn(
               !isDeploying &&
-                'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
+              'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
             )}
-            title="Deploy (Cmd+S)"
+            title="Deploy"
           >
             {isSaving || isDeploying ? (
               <Loader2 className="w-6 h-6 animate-spin" />

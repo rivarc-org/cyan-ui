@@ -35,6 +35,7 @@ export function Editor() {
     activeRevisionId,
     loadRevision,
     loadLive,
+    save,
     deploy,
     stop,
     isDirty,
@@ -71,7 +72,7 @@ export function Editor() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        deploy();
+        save();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
@@ -81,7 +82,7 @@ export function Editor() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deploy, handleUndo, handleRedo]);
+  }, [save, handleUndo, handleRedo]);
 
   // ===== ERROR HANDLING =====
   useEffect(() => {
@@ -145,6 +146,7 @@ export function Editor() {
             isDeploying={isDeploying}
             canUndo={canUndo}
             canRedo={canRedo}
+            onSave={save}
             onDeploy={deploy}
             onStop={stop}
             onUndo={handleUndo}

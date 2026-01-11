@@ -40,6 +40,7 @@ interface ProjectControllerResult {
   // Actions
   loadRevision: (revisionId: string) => void;
   loadLive: () => void;
+  save: () => Promise<string | null>;
   deploy: () => Promise<void>;
   stop: () => Promise<void>;
 
@@ -287,6 +288,70 @@ export function useProjectController(): ProjectControllerResult {
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
+  const save = useCallback(async () => {
+    if (!projectId) return null;
+
+    const graphState = getGraphState();
+    let savedRevisionId: string | null = null;
+
+    try {
+      // Check if we're already viewing a draft (from URL or local state)
+      const existingDraftId = activeRevisionIsDraft
+        ? revisionIdFromUrl
+        : draftRevisionId;
+
+      if (!existingDraftId) {
+        // Create new draft revision
+        const draft = await createRevisionMutation.mutateAsync({
+          projectId,
+          graphState,
+        });
+        savedRevisionId = draft.id;
+        setDraftRevisionId(draft.id);
+        setSearchParams({ revision: draft.id }, { replace: true });
+      } else {
+        // Update existing draft
+        await updateRevisionMutation.mutateAsync({
+          projectId,
+          revisionId: existingDraftId,
+          graphState,
+        });
+        savedRevisionId = existingDraftId;
+        // Ensure URL param is still set (in case it was lost)
+        if (searchParams.get('revision') !== existingDraftId) {
+          setSearchParams({ revision: existingDraftId }, { replace: true });
+        }
+        // Ensure local draft state is set (for URL-loaded drafts)
+        if (!draftRevisionId) {
+          setDraftRevisionId(existingDraftId);
+        }
+      }
+      markClean();
+
+      // Refresh data
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.revisions.list(projectId),
+      });
+
+      return savedRevisionId;
+    } catch (err) {
+      console.error('Save failed:', err);
+      throw err;
+    }
+  }, [
+    projectId,
+    getGraphState,
+    activeRevisionIsDraft,
+    revisionIdFromUrl,
+    draftRevisionId,
+    createRevisionMutation,
+    updateRevisionMutation,
+    setSearchParams,
+    searchParams,
+    markClean,
+    queryClient,
+  ]);
+
   const deploy = useCallback(async () => {
     if (!projectId) return;
 
@@ -295,28 +360,14 @@ export function useProjectController(): ProjectControllerResult {
       clearNodeStatuses();
 
       // Determine if we have an existing draft to update
-      const existingDraftId = activeRevisionIsDraft ? revisionIdFromUrl : draftRevisionId;
+      const existingDraftId = activeRevisionIsDraft
+        ? revisionIdFromUrl
+        : draftRevisionId;
       let revisionToDeploy = existingDraftId;
 
       // If we have unsaved changes, save them first
       if (isDirty) {
-        const graphState = getGraphState();
-        if (!existingDraftId) {
-          // Create new draft revision
-          const draft = await createRevisionMutation.mutateAsync({
-            projectId,
-            graphState,
-          });
-          revisionToDeploy = draft.id;
-        } else {
-          // Update existing draft
-          await updateRevisionMutation.mutateAsync({
-            projectId,
-            revisionId: existingDraftId,
-            graphState,
-          });
-          revisionToDeploy = existingDraftId;
-        }
+        revisionToDeploy = await save();
       }
 
       // Deploy the draft (or current revision if no draft)
@@ -345,14 +396,12 @@ export function useProjectController(): ProjectControllerResult {
   }, [
     projectId,
     isDirty,
-    draftRevisionId,
+    save,
     activeRevisionIsDraft,
     revisionIdFromUrl,
-    currentRevisionId,
-    getGraphState,
-    createRevisionMutation,
-    updateRevisionMutation,
+    draftRevisionId,
     deployMutation,
+    currentRevisionId,
     queryClient,
     markClean,
     setSearchParams,
@@ -392,6 +441,7 @@ export function useProjectController(): ProjectControllerResult {
     pluginMap,
     loadRevision,
     loadLive,
+    save,
     deploy,
     stop,
     isDirty,
