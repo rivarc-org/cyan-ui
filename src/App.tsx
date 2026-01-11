@@ -4,6 +4,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Editor } from '@/pages/Editor';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { initializeTheme } from '@/stores/themeStore';
+import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   useEffect(() => {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/project/:id" element={<Editor />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="top-center" />
     </QueryProvider>
   );
 }
