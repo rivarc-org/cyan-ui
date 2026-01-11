@@ -52,11 +52,16 @@ export function ViewModeDropdown({
   const activeRevision = revisions.find((r) => r.id === activeRevisionId);
 
   const getModeLabel = () => {
-    if (isDirty) return 'Draft (unsaved)';
+    
+    if (viewMode === 'draft' && activeRevision && isDirty) {
+      return `Draft v${activeRevision.version_number}*`;
+    }
     if (viewMode === 'draft' && activeRevision) {
       return `Draft v${activeRevision.version_number}`;
     }
+    
     if (viewMode === 'draft') return 'Draft';
+    
     if (viewMode === 'live') {
       return liveRevision ? `Live v${liveRevision.version_number}` : 'Live';
     }

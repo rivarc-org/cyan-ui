@@ -33,6 +33,8 @@ export function AddNodeMenu() {
         <Box className="w-5 h-5" />
       </Button>
 
+      <div className='h-12'></div >
+
       <ExternalServiceDialog
         open={isExternalDialogOpen}
         onOpenChange={setIsExternalDialogOpen}
