@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useProject, useDeployProject, useStopProject } from '@/queries/useProjects';
@@ -57,7 +57,7 @@ const AUTO_SAVE_DELAY = 2000;
 export function useProjectController(): ProjectControllerResult {
   const { id: projectId } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  
   const queryClient = useQueryClient();
 
   // URL-derived state
@@ -69,7 +69,7 @@ export function useProjectController(): ProjectControllerResult {
 
   // Draft tracking state
   const [draftRevisionId, setDraftRevisionId] = useState<string | null>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ===== QUERIES =====
 
