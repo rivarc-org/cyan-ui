@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import {
   ChevronLeft,
   Undo2,
@@ -6,11 +5,9 @@ import {
   Play,
   Square,
   Loader2,
-  Copy,
-  Check,
   Save,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { SettingsDialog } from '@/components/dialogs/SettingsDialog';
 import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
 import { UserMenu } from '@/components/layout/UserMenu';
 import {
@@ -21,12 +18,11 @@ import {
   ToolbarSeparator,
 } from '@/components/layout/EditorToolbar';
 import { cn } from '@/lib/utils';
-import { useGraphStore } from '@/stores/graphStore';
-import { flowToBackend } from '@/lib/transformers';
 import type { ViewMode } from '@/hooks/useProjectController';
 import type { RevisionSummary } from '@/api/types';
 
 interface EditorLeftPanelProps {
+  projectId?: string;
   projectName?: string;
   viewMode: ViewMode;
   revisions: RevisionSummary[];
@@ -54,6 +50,7 @@ interface EditorRightPanelProps {
 }
 
 export function EditorLeftPanel({
+  projectId,
   projectName,
   viewMode,
   revisions,
@@ -65,18 +62,6 @@ export function EditorLeftPanel({
   onLoadLive,
   onDeleteDraft,
 }: EditorLeftPanelProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    const nodes = useGraphStore.getState().nodes;
-    const edges = useGraphStore.getState().edges;
-    const graphState = flowToBackend(nodes, edges);
-
-    await navigator.clipboard.writeText(JSON.stringify(graphState, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
-
   return (
     <Toolbar>
       <ToolbarGroup>
@@ -101,22 +86,11 @@ export function EditorLeftPanel({
         />
       </ToolbarGroup>
 
-      <ToolbarGroup>
-        <ToolbarItem onClick={handleCopy} title="Copy graph JSON to clipboard">
-          {copied ? (
-            <Check className="w-6 h-6 text-green-500" />
-          ) : (
-            <Copy className="w-6 h-6" />
-          )}
-        </ToolbarItem>
-      </ToolbarGroup>
-
-      <ToolbarGroup>
-        <ThemeToggle />
-      </ToolbarGroup>
+      <SettingsDialog projectId={projectId} projectName={projectName} />
     </Toolbar>
   );
 }
+
 
 export function EditorRightPanel({
   viewMode,

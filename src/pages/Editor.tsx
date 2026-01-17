@@ -29,6 +29,7 @@ export function Editor() {
   const {
     isLoading,
     isError,
+    projectId,
     projectName,
     viewMode,
     revisions,
@@ -180,6 +181,7 @@ export function Editor() {
 
         <Panel position="top-left" >
           <EditorLeftPanel
+            projectId={projectId}
             projectName={projectName}
             viewMode={viewMode}
             revisions={revisions}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Folder, Loader2 } from 'lucide-react';
+import { Plus, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,31 +18,15 @@ import {
   ToolbarSeparator,
 } from '@/components/layout/EditorToolbar';
 import { UserMenu } from '@/components/layout/UserMenu';
-import { useProjects, useDeleteProject } from '@/queries/useProjects';
+import { useProjects } from '@/queries/useProjects';
 import type { ProjectResponse } from '@/api/types';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Use React Query for projects
   const { data: projects = [], isLoading } = useProjects();
-  const deleteProjectMutation = useDeleteProject();
-
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this project?')) return;
-
-    setDeletingId(id);
-    try {
-      await deleteProjectMutation.mutateAsync(id);
-    } catch (err) {
-      console.error('Failed to delete project:', err);
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   const handleProjectCreated = (project: ProjectResponse) => {
     setIsCreateOpen(false);
@@ -105,30 +89,13 @@ export function Dashboard() {
               onClick={() => navigate(`/project/${project.id}`)}
             >
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate text-card-foreground">
-                      {project.name}
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-muted-foreground">
-                      Created{' '}
-                      {new Date(project.created_at).toLocaleDateString()}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    onClick={(e) => handleDelete(project.id, e)}
-                    disabled={deletingId === project.id}
-                  >
-                    {deletingId === project.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    )}
-                  </Button>
-                </div>
+                <CardTitle className="text-lg truncate text-card-foreground">
+                  {project.name}
+                </CardTitle>
+                <CardDescription className="mt-1 text-muted-foreground">
+                  Created{' '}
+                  {new Date(project.created_at).toLocaleDateString()}
+                </CardDescription>
               </CardHeader>
             </Card>
           ))}
