@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReactFlow, Background, Panel, type Connection } from '@xyflow/react';
+import { ReactFlow, Background, Panel, type Connection, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import { PluginNode } from '@/components/graph/PluginNode';
@@ -49,6 +49,56 @@ export function Editor() {
   const onNodesChange = useGraphStore((s) => s.onNodesChange);
   const onEdgesChange = useGraphStore((s) => s.onEdgesChange);
   const onConnect = useGraphStore((s) => s.onConnect);
+  const updateNodes = useGraphStore((s) => s.updateNodes);
+
+  // ===== DRAG HANDLERS =====
+  const onNodeDragStart = useCallback(
+    () => {
+      const { nodes } = useGraphStore.getState();
+      const selectedNodes = nodes.filter((n) => n.selected);
+
+      const updates = selectedNodes.map((node) => ({
+        id: node.id,
+        data: {
+          style: { ...node.style, transition: 'none' },
+        },
+      }));
+
+      updateNodes(updates);
+    },
+    [updateNodes]
+  );
+
+  const onNodeDragStop = useCallback(
+    () => {
+      const GRID_SIZE = 50;
+      const { nodes } = useGraphStore.getState();
+      const selectedNodes = nodes.filter((n) => n.selected);
+
+      const updates = selectedNodes.map((node) => {
+        const snappedX = Math.round(node.position.x / GRID_SIZE) * GRID_SIZE;
+        const snappedY = Math.round(node.position.y / GRID_SIZE) * GRID_SIZE;
+
+        return {
+          id: node.id,
+          data: {
+            position: { x: snappedX, y: snappedY },
+            style: {
+              ...node.style,
+              transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            },
+          },
+        };
+      });
+
+      // Only update if there are changes to avoid unnecessary re-renders
+      // However, we always need to restore transition, so we just update.
+      if (updates.length > 0) {
+        updateNodes(updates);
+      }
+    },
+    [updateNodes]
+  );
 
   // ===== TEMPORAL (UNDO/REDO) =====
   const temporal = useTemporalStore();
@@ -116,11 +166,13 @@ export function Editor() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         isValidConnection={handleIsValidConnection}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
         fitView
         proOptions={{ hideAttribution: true }}
         className="bg-background"
       >
-        <Background color="var(--graph-pattern-color)" gap={50}  />
+        <Background color="var(--graph-pattern-color)" gap={50} />
 
         <Panel position="bottom-left" >
           <EditorControls />

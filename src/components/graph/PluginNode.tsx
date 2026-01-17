@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useLayoutEffect, useRef } from 'react';
 import { Database, Server, MoreVertical, Box } from 'lucide-react';
 import type { PluginNodeData, ExternalInputField } from '@/types/graph';
 import type { InputDTO } from '@/api/types';
@@ -8,7 +8,8 @@ import { useGraphStore } from '@/stores/graphStore';
 import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils';
 
-const NODE_WIDTH = 280;
+const GRID_SIZE = 50;
+const NODE_WIDTH = 300; // 6 * 50
 
 const statusColors: Record<string, string> = {
   pending: 'bg-gray-400',
@@ -27,6 +28,8 @@ interface PluginNodeProps {
 }
 
 function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const nodeData = data;
   const updateNodeInput = useGraphStore((s) => s.updateNodeInput);
   const updateExternalField = useGraphStore((s) => s.updateExternalField);
@@ -47,7 +50,7 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
   // For External nodes: Fields (editable inputs + custom fields) are outputs
   // For Plugin nodes: Exports are outputs
   let rightOutputs: { id: string }[] = [];
-  
+
   const editableInputs = nodeData.inputs.filter(
     (i: InputDTO) => i.type !== 'plugin' && !i.generate && i.id !== 'INTERNAL_PORT'
   );
@@ -62,6 +65,29 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
     rightOutputs = nodeData.exports.map(e => ({ id: e.key }));
   }
 
+  // Snap height to grid using ResizeObserver to handle dynamic content changes
+  useLayoutEffect(() => {
+    if (!contentRef.current || !nodeRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (contentRef.current && nodeRef.current) {
+        const contentHeight = contentRef.current.offsetHeight;
+        // Add border width (2px top + 2px bottom = 4px)
+        const totalHeight = contentHeight + 4;
+        const snappedHeight = Math.ceil(totalHeight / GRID_SIZE) * GRID_SIZE;
+
+        // Only update if changed to avoid loops (though ResizeObserver is optimizing)
+        if (nodeRef.current.style.height !== `${snappedHeight}px`) {
+          nodeRef.current.style.height = `${snappedHeight}px`;
+        }
+      }
+    });
+
+    observer.observe(contentRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   // Choose icon based on category
   const CategoryIcon = nodeData.category === 'external'
     ? Box
@@ -74,6 +100,7 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
 
   return (
     <div
+      ref={nodeRef}
       className={cn(
         'bg-card text-card-foreground rounded-lg shadow-lg border-2 transition-all',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
@@ -101,113 +128,116 @@ function PluginNodeComponent({ id, data, selected }: PluginNodeProps) {
         />
       ))}
 
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <CategoryIcon className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-sm truncate max-w-[180px]">
-            {nodeData.pluginName}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {displayStatus && (
-            <div
-              className={cn(
-                'w-2 h-2 rounded-full',
-                statusColors[displayStatus]
-              )}
-              title={displayStatus}
-            />
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openInspector(id);
-            }}
-            className="p-1 hover:bg-muted rounded"
-          >
-            <MoreVertical className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* Body - Inputs and custom fields */}
-      <div className="p-3 space-y-3">
-
-
-        {/* Plugin/Left Inputs labels */}
-        {leftInputs.map((input: InputDTO) => (
-          <div
-            key={input.id}
-            className="flex items-center gap-2 text-xs text-muted-foreground"
-          >
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            <span>
-              {input.id.replace(/_/g, ' ')}
-              {input.accepts && (
-                <span className="text-muted-foreground/70 ml-1">
-                  ({input.accepts.split('.').pop()})
-                </span>
-              )}
+      {/* Content Wrapper for measuring height */}
+      <div ref={contentRef}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <CategoryIcon className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-sm truncate max-w-[180px]">
+              {nodeData.pluginName}
             </span>
           </div>
-        ))}
-
-        {/* Editable input fields (Only for external nodes, they act as outputs visually but inputs data-wise) */}
-        {nodeData.isExternal && editableInputs.map((input: InputDTO) => (
-          <div key={input.id} className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              {input.id.replace(/_/g, ' ')}
-            </label>
-            {input.type === 'secret' ? (
-              <SecureInput
-                value={nodeData.inputValues[input.id] || ''}
-                onChange={(value) => updateNodeInput(id, input.id, value)}
-                placeholder={input.default || 'Enter secret...'}
-              />
-            ) : (
-              <input
-                type="text"
-                value={nodeData.inputValues[input.id] || ''}
-                onChange={(e) => updateNodeInput(id, input.id, e.target.value)}
-                placeholder={input.default || ''}
+          <div className="flex items-center gap-2">
+            {displayStatus && (
+              <div
                 className={cn(
-                  'nodrag w-full px-2 py-1 text-sm border border-input rounded',
-                  'bg-background text-foreground',
-                  'focus:outline-none focus:ring-1 focus:ring-ring'
+                  'w-2 h-2 rounded-full',
+                  statusColors[displayStatus]
                 )}
+                title={displayStatus}
               />
             )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openInspector(id);
+              }}
+              className="p-1 hover:bg-muted rounded"
+            >
+              <MoreVertical className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
-        ))}
+        </div>
 
-        {/* Custom fields for external nodes */}
-        {nodeData.isExternal && nodeData.customFields?.map((field: ExternalInputField) => (
-          <div key={field.id} className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              {field.name}
-            </label>
-            {field.type === 'secret' ? (
-              <SecureInput
-                value={field.value || ''}
-                onChange={(value) => updateExternalField(id, field.id, value)}
-                placeholder={`Enter ${field.name}...`}
-              />
-            ) : (
-              <input
-                type="text"
-                value={field.value || ''}
-                onChange={(e) => updateExternalField(id, field.id, e.target.value)}
-                placeholder=""
-                className={cn(
-                  'nodrag w-full px-2 py-1 text-sm border border-input rounded',
-                  'bg-background text-foreground',
-                  'focus:outline-none focus:ring-1 focus:ring-ring'
+        {/* Body - Inputs and custom fields */}
+        <div className="p-3 space-y-3">
+
+
+          {/* Plugin/Left Inputs labels */}
+          {leftInputs.map((input: InputDTO) => (
+            <div
+              key={input.id}
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              <span>
+                {input.id.replace(/_/g, ' ')}
+                {input.accepts && (
+                  <span className="text-muted-foreground/70 ml-1">
+                    ({input.accepts.split('.').pop()})
+                  </span>
                 )}
-              />
-            )}
-          </div>
-        ))}
+              </span>
+            </div>
+          ))}
+
+          {/* Editable input fields (Only for external nodes, they act as outputs visually but inputs data-wise) */}
+          {nodeData.isExternal && editableInputs.map((input: InputDTO) => (
+            <div key={input.id} className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                {input.id.replace(/_/g, ' ')}
+              </label>
+              {input.type === 'secret' ? (
+                <SecureInput
+                  value={nodeData.inputValues[input.id] || ''}
+                  onChange={(value) => updateNodeInput(id, input.id, value)}
+                  placeholder={input.default || 'Enter secret...'}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={nodeData.inputValues[input.id] || ''}
+                  onChange={(e) => updateNodeInput(id, input.id, e.target.value)}
+                  placeholder={input.default || ''}
+                  className={cn(
+                    'nodrag w-full px-2 py-1 text-sm border border-input rounded',
+                    'bg-background text-foreground',
+                    'focus:outline-none focus:ring-1 focus:ring-ring'
+                  )}
+                />
+              )}
+            </div>
+          ))}
+
+          {/* Custom fields for external nodes */}
+          {nodeData.isExternal && nodeData.customFields?.map((field: ExternalInputField) => (
+            <div key={field.id} className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                {field.name}
+              </label>
+              {field.type === 'secret' ? (
+                <SecureInput
+                  value={field.value || ''}
+                  onChange={(value) => updateExternalField(id, field.id, value)}
+                  placeholder={`Enter ${field.name}...`}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={field.value || ''}
+                  onChange={(e) => updateExternalField(id, field.id, e.target.value)}
+                  placeholder=""
+                  className={cn(
+                    'nodrag w-full px-2 py-1 text-sm border border-input rounded',
+                    'bg-background text-foreground',
+                    'focus:outline-none focus:ring-1 focus:ring-ring'
+                  )}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Footer - Image tag */}

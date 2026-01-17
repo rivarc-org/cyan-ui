@@ -36,6 +36,8 @@ interface GraphState {
   updateNodeInput: (nodeId: string, inputId: string, value: string) => void;
   updateExternalField: (nodeId: string, fieldId: string, value: string) => void;
   updateNodeImage: (nodeId: string, image: string) => void;
+  updateNode: (nodeId: string, updates: Partial<PluginNode>) => void;
+  updateNodes: (updates: { id: string; data: Partial<PluginNode> }[]) => void;
 
   // Canvas loading from backend
   loadCanvas: (
@@ -209,15 +211,15 @@ export const useGraphStore = create<GraphState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    inputValues: {
-                      ...node.data.inputValues,
-                      [inputId]: value,
-                    },
+                ...node,
+                data: {
+                  ...node.data,
+                  inputValues: {
+                    ...node.data.inputValues,
+                    [inputId]: value,
                   },
-                }
+                },
+              }
               : node
           ),
           isDirty: true,
@@ -230,14 +232,14 @@ export const useGraphStore = create<GraphState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId && node.data.customFields
               ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    customFields: node.data.customFields.map((field) =>
-                      field.id === fieldId ? { ...field, value } : field
-                    ),
-                  },
-                }
+                ...node,
+                data: {
+                  ...node.data,
+                  customFields: node.data.customFields.map((field) =>
+                    field.id === fieldId ? { ...field, value } : field
+                  ),
+                },
+              }
               : node
           ),
           isDirty: true,
@@ -250,11 +252,46 @@ export const useGraphStore = create<GraphState>()(
           nodes: nodes.map((node) =>
             node.id === nodeId
               ? {
-                  ...node,
-                  data: { ...node.data, image },
-                }
+                ...node,
+                data: { ...node.data, image },
+              }
               : node
           ),
+          isDirty: true,
+        });
+      },
+
+      updateNode: (nodeId, updates) => {
+        const { nodes } = get();
+        set({
+          nodes: nodes.map((node) =>
+            node.id === nodeId
+              ? {
+                ...node,
+                ...updates,
+              }
+              : node
+          ),
+          isDirty: true,
+        });
+      },
+
+      updateNodes: (updates) => {
+        const { nodes } = get();
+        // Index updates by ID for faster lookup
+        const updateMap = new Map(updates.map((u) => [u.id, u.data]));
+
+        set({
+          nodes: nodes.map((node) => {
+            const update = updateMap.get(node.id);
+            if (update) {
+              return {
+                ...node,
+                ...update,
+              };
+            }
+            return node;
+          }),
           isDirty: true,
         });
       },
