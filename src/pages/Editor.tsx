@@ -120,7 +120,7 @@ export function Editor() {
         proOptions={{ hideAttribution: true }}
         className="bg-background"
       >
-        <Background color="var(--graph-pattern-color)" />
+        <Background color="var(--graph-pattern-color)" gap={50}  />
 
         <Panel position="bottom-left" >
           <EditorControls />
