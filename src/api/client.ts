@@ -20,6 +20,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'include', // Ensure cookies are sent
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -27,6 +28,15 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    // Handle 401 - redirect to login (except for auth/me endpoint)
+    if (response.status === 401 && !endpoint.includes('/auth/me')) {
+      const returnUrl = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      window.location.href = `/login?return_url=${returnUrl}`;
+      throw new ApiError(401, 'UNAUTHORIZED', 'Session expired');
+    }
+
     let error: ApiErrorResponse = { error: 'Request failed' };
     try {
       error = await response.json();

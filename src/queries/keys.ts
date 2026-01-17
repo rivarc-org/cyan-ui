@@ -1,4 +1,9 @@
 export const queryKeys = {
+  // Auth
+  auth: {
+    me: ['auth', 'me'] as const,
+  },
+
   // Projects
   projects: {
     all: ['projects'] as const,

@@ -1,27 +1,47 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/authStore';
+import { authApi } from '@/api/auth';
 
 export function Login() {
     const [isLoading, setIsLoading] = useState(false);
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { isAuthenticated, isLoading: authLoading, setUser } = useAuthStore();
 
-    async function onSubmit(event: React.FormEvent) {
+    // If already authenticated, redirect to return URL or home
+    useEffect(() => {
+        if (!authLoading && isAuthenticated) {
+            const returnUrl = searchParams.get('return_url') || '/';
+            navigate(returnUrl, { replace: true });
+        }
+    }, [isAuthenticated, authLoading, searchParams, navigate]);
+
+    async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false);
+        const form = event.currentTarget;
+        const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
+        const returnUrl = searchParams.get('return_url') || '/';
+
+        try {
+            const user = await authApi.login({ email, password });
+            setUser(user);
             toast.success('Signed in successfully');
-            navigate('/');
-        }, 1000);
+            navigate(returnUrl, { replace: true });
+        } catch {
+            toast.error('Invalid email or password');
+            setIsLoading(false);
+        }
     }
 
     return (
@@ -59,6 +79,7 @@ export function Login() {
                                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         id="email"
+                                        name="email"
                                         placeholder="name@example.com"
                                         type="email"
                                         autoCapitalize="none"
@@ -84,6 +105,7 @@ export function Login() {
                                     <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         id="password"
+                                        name="password"
                                         type="password"
                                         disabled={isLoading}
                                         className="pl-9"

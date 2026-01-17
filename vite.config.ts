@@ -26,6 +26,31 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // OIDC routes
+      '/.well-known': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/authorize': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/oauth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/userinfo': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/keys': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/end_session': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

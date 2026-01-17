@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Folder, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Folder, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,12 +11,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectDialog } from '@/components/dialogs/CreateProjectDialog';
 import { useProjects, useDeleteProject } from '@/queries/useProjects';
+import { useAuthStore } from '@/stores/authStore';
 import type { ProjectResponse } from '@/api/types';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Auth state
+  const { user, logout } = useAuthStore();
 
   // Use React Query for projects
   const { data: projects = [], isLoading } = useProjects();
@@ -52,10 +56,18 @@ export function Dashboard() {
               Visual orchestration made simple
             </p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-4">
+            {user && (
+              <span className="text-sm text-muted-foreground">{user.email}</span>
+            )}
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+            <Button variant="outline" size="icon" onClick={logout} title="Logout">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Projects Grid */}
