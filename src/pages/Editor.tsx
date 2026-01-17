@@ -11,6 +11,7 @@ import { AddNodeMenu } from '@/components/layout/AddNodeMenu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditorControls } from '@/components/graph/EditorControls';
 
+
 import { useProjectController } from '@/hooks/useProjectController';
 import { useGraphStore, useTemporalStore } from '@/stores/graphStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -121,11 +122,11 @@ export function Editor() {
       >
         <Background color="var(--graph-pattern-color)" />
 
-        <Panel position="bottom-left">
+        <Panel position="bottom-left" >
           <EditorControls />
         </Panel>
 
-        <Panel position="top-left">
+        <Panel position="top-left" >
           <EditorLeftPanel
             projectName={projectName}
             viewMode={viewMode}
@@ -140,7 +141,11 @@ export function Editor() {
           />
         </Panel>
 
-        <Panel position="top-right">
+        <Panel position="top-center" className="m-2 pointer-events-none">
+          <span className="text-muted-foreground font-medium opacity-50">CyanStack</span>
+        </Panel>
+
+        <Panel position="top-right" >
           <EditorRightPanel
             viewMode={viewMode}
             isDirty={isDirty}
@@ -156,13 +161,13 @@ export function Editor() {
           />
         </Panel>
 
-        <Panel position="bottom-right">
+        <Panel position="bottom-right" >
           <AddNodeMenu />
         </Panel>
       </ReactFlow>
 
       <NodeInspector />
       <CommandPalette />
-    </div>
+    </div >
   );
 }

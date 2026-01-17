@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Folder, Loader2, LogOut } from 'lucide-react';
+import { Plus, Trash2, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,17 +10,21 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectDialog } from '@/components/dialogs/CreateProjectDialog';
+import {
+  Toolbar,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarLabel,
+  ToolbarSeparator,
+} from '@/components/layout/EditorToolbar';
+import { UserMenu } from '@/components/layout/UserMenu';
 import { useProjects, useDeleteProject } from '@/queries/useProjects';
-import { useAuthStore } from '@/stores/authStore';
 import type { ProjectResponse } from '@/api/types';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  // Auth state
-  const { user, logout } = useAuthStore();
 
   // Use React Query for projects
   const { data: projects = [], isLoading } = useProjects();
@@ -46,92 +50,90 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">CyanStack</h1>
-            <p className="text-muted-foreground">
-              Visual orchestration made simple
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            {user && (
-              <span className="text-sm text-muted-foreground">{user.email}</span>
-            )}
-            <Button onClick={() => setIsCreateOpen(true)}>
+    <div className="min-h-screen bg-background p-4">
+      {/* Header */}
+      <Toolbar className="mb-8 justify-between w-full">
+        <ToolbarGroup>
+          <ToolbarLabel className="font-bold text-xl">CyanStack</ToolbarLabel>
+          <ToolbarSeparator />
+          <ToolbarLabel className="text-muted-foreground font-normal text-sm hidden sm:flex">
+            Visual orchestration made simple
+          </ToolbarLabel>
+        </ToolbarGroup>
+
+        <div className="flex items-center gap-2">
+          <ToolbarGroup>
+            <ToolbarItem onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Project
-            </Button>
-            <Button variant="outline" size="icon" onClick={logout} title="Logout">
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+            </ToolbarItem>
+          </ToolbarGroup>
 
-        {/* Projects Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-4">
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </Card>
-            ))}
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-16">
-            <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-medium text-gray-600 mb-2">
-              No projects yet
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Create your first project to get started
-            </p>
-            <Button onClick={() => setIsCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Project
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projects.map((project) => (
-              <Card
-                key={project.id}
-                onClick={() => navigate(`/project/${project.id}`)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg truncate text-card-foreground">
-                        {project.name}
-                      </CardTitle>
-                      <CardDescription className="mt-1 text-muted-foreground">
-                        Created{' '}
-                        {new Date(project.created_at).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                      onClick={(e) => handleDelete(project.id, e)}
-                      disabled={deletingId === project.id}
-                    >
-                      {deletingId === project.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      )}
-                    </Button>
+          <UserMenu />
+        </div>
+      </Toolbar>
+
+      {/* Projects Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-4">
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2" />
+            </Card>
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="text-center py-16">
+          <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-medium text-gray-600 mb-2">
+            No projects yet
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Create your first project to get started
+          </p>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Project
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((project) => (
+            <Card
+              key={project.id}
+              onClick={() => navigate(`/project/${project.id}`)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg truncate text-card-foreground">
+                      {project.name}
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-muted-foreground">
+                      Created{' '}
+                      {new Date(project.created_at).toLocaleDateString()}
+                    </CardDescription>
                   </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    onClick={(e) => handleDelete(project.id, e)}
+                    disabled={deletingId === project.id}
+                  >
+                    {deletingId === project.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <CreateProjectDialog
         open={isCreateOpen}

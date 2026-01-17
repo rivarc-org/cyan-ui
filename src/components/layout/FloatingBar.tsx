@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ViewModeDropdown } from '@/components/layout/ViewModeDropdown';
+import { UserMenu } from '@/components/layout/UserMenu';
 import {
   Toolbar,
   ToolbarGroup,
@@ -192,6 +193,8 @@ export function EditorRightPanel({
           </ToolbarItem>
         )}
       </ToolbarGroup>
+
+      <UserMenu />
     </Toolbar>
   );
 }
