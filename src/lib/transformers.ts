@@ -4,7 +4,11 @@ import type {
   PluginDetailResponse,
   InputDTO,
 } from '@/api/types';
-import type { PluginNode, GraphEdge } from '@/types/graph';
+import type { PluginNode, GraphEdge, ExternalInputField } from '@/types/graph';
+
+// Special keys for encoding external node metadata in backend inputs
+const EXTERNAL_NAME_KEY = '__external_name';
+const EXTERNAL_FIELDS_KEY = '__external_fields';
 
 /**
  * Converts backend GraphState to React Flow nodes and edges.
@@ -25,6 +29,15 @@ export function backendToFlow(
   const nodeIds = new Set(graphState.nodes.map((n) => n.id));
 
   graphState.nodes.forEach((backendNode, index) => {
+    // Handle external nodes specially - they don't exist in the plugin library
+    if (backendNode.plugin_id.startsWith('external://')) {
+      const externalNode = reconstructExternalNode(backendNode, index);
+      if (externalNode) {
+        nodes.push(externalNode);
+      }
+      return;
+    }
+
     const plugin = pluginMap.get(backendNode.plugin_id);
     if (!plugin) {
       console.warn(`Plugin ${backendNode.plugin_id} not found in library`);
@@ -73,6 +86,60 @@ export function backendToFlow(
 }
 
 /**
+ * Reconstructs an external node from backend storage format.
+ * External nodes store their metadata in special input keys.
+ */
+function reconstructExternalNode(
+  backendNode: NodeStateDTO,
+  index: number
+): PluginNode | null {
+  const { inputs } = backendNode;
+
+  // Get external node name - required
+  const name = inputs[EXTERNAL_NAME_KEY];
+  if (!name) {
+    console.warn(`External node ${backendNode.id} missing name metadata`);
+    return null;
+  }
+
+  // Parse custom fields metadata
+  let customFields: ExternalInputField[] = [];
+  const fieldsJson = inputs[EXTERNAL_FIELDS_KEY];
+  if (fieldsJson) {
+    try {
+      const fieldsMeta = JSON.parse(fieldsJson) as Array<{
+        id: string;
+        name: string;
+        type: 'text' | 'secret';
+      }>;
+      // Reconstruct fields with their values from inputs
+      customFields = fieldsMeta.map((meta) => ({
+        ...meta,
+        value: inputs[meta.id] || '',
+      }));
+    } catch (e) {
+      console.warn(`Failed to parse external node fields: ${e}`);
+    }
+  }
+
+  return {
+    id: backendNode.id,
+    type: 'external',
+    position: backendNode.position || calculatePosition(index),
+    data: {
+      pluginId: 'external://custom',
+      pluginName: name,
+      category: 'external',
+      inputs: [],
+      exports: [],
+      inputValues: {},
+      isExternal: true,
+      customFields,
+    },
+  };
+}
+
+/**
  * Converts React Flow nodes/edges back to backend GraphState.
  *
  * We need to:
@@ -93,22 +160,44 @@ export function flowToBackend(
   const backendNodes: NodeStateDTO[] = nodes.map((node) => {
     const inputs: Record<string, string> = {};
 
-    node.data.inputs.forEach((input) => {
-      if (input.type === 'plugin') {
-        // For plugin inputs, look up the connected source node
-        const edgeKey = `${node.id}:${input.id}`;
-        const sourceNodeId = edgeLookup.get(edgeKey);
-        if (sourceNodeId) {
-          inputs[input.id] = sourceNodeId;
+    // Handle external nodes specially - store metadata and custom field values
+    if (node.data.isExternal && node.data.customFields) {
+      // Store the node name
+      inputs[EXTERNAL_NAME_KEY] = node.data.pluginName;
+
+      // Store field metadata (id, name, type - without values)
+      const fieldsMeta = node.data.customFields.map(({ id, name, type }) => ({
+        id,
+        name,
+        type,
+      }));
+      inputs[EXTERNAL_FIELDS_KEY] = JSON.stringify(fieldsMeta);
+
+      // Store each field's value using its id as the key
+      node.data.customFields.forEach((field) => {
+        if (field.value !== undefined && field.value !== '') {
+          inputs[field.id] = field.value;
         }
-      } else {
-        // For string/secret/port inputs, use the stored value
-        const value = node.data.inputValues[input.id];
-        if (value !== undefined && value !== '') {
-          inputs[input.id] = value;
+      });
+    } else {
+      // Regular nodes - process inputs normally
+      node.data.inputs.forEach((input) => {
+        if (input.type === 'plugin') {
+          // For plugin inputs, look up the connected source node
+          const edgeKey = `${node.id}:${input.id}`;
+          const sourceNodeId = edgeLookup.get(edgeKey);
+          if (sourceNodeId) {
+            inputs[input.id] = sourceNodeId;
+          }
+        } else {
+          // For string/secret/port inputs, use the stored value
+          const value = node.data.inputValues[input.id];
+          if (value !== undefined && value !== '') {
+            inputs[input.id] = value;
+          }
         }
-      }
-    });
+      });
+    }
 
     return {
       id: node.id,

@@ -33,19 +33,15 @@ function ExternalNodeComponent({ id, data, selected }: ExternalNodeProps) {
   const handles = (
     <>
       {leftInputs.map((input, idx) => (
-        <InputHandle
-          key={input.id}
-          input={input}
-          index={idx}
-          totalInputs={leftInputs.length}
-        />
+        <InputHandle key={input.id} input={input} index={idx} />
       ))}
       {rightOutputs.map((output, idx) => (
         <ExportHandle
           key={output.id}
           id={output.id}
           index={idx}
-          totalExports={rightOutputs.length}
+          rowOffset={leftInputs.length}
+          useFieldHeight
         />
       ))}
     </>
