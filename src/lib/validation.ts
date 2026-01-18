@@ -6,8 +6,9 @@ import type { PluginNode } from '@/types/graph';
  *
  * Rules:
  * 1. Cannot connect a node to itself
- * 2. Target handle must be a plugin-type input
- * 3. Source node's plugin_id must match the input's "accepts" field
+ * 2. Target handle must be a valid input ID for the target node
+ * 3. For plugin-type inputs, source node's pluginId must match "accepts"
+ * 4. For port/secret inputs, any node can be the source
  */
 export function isValidConnection(
   connection: Connection,
@@ -62,12 +63,9 @@ export function isValidConnection(
     }
   }
 
-  // For port/secret inputs, only allow connections from external nodes
+  // For port/secret inputs, any node can provide a value
   if (targetInput.type === 'port' || targetInput.type === 'secret') {
-    if (!sourceNode.data.isExternal) {
-      console.log('[isValidConnection] Rejected: port/secret inputs can only receive from external nodes');
-      return false;
-    }
+    // No additional restrictions for now
   }
 
   console.log('[isValidConnection] Accepted');

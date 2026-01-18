@@ -62,28 +62,52 @@ export function backendToFlow(
 
     nodes.push(flowNode);
 
-    // Extract edges from plugin-type inputs
+    // Extract edges from all input types (plugin, port, secret)
     plugin.inputs.forEach((input) => {
-      if (input.type === 'plugin') {
-        const sourceNodeId = backendNode.inputs[input.id];
+      const sourceNodeId = backendNode.inputs[input.id];
 
-        // Validate that the source node exists
-        if (sourceNodeId && nodeIds.has(sourceNodeId)) {
-          // Find the source node's plugin to get its exports
-          const sourceBackendNode = graphState.nodes.find(n => n.id === sourceNodeId);
-          const sourcePlugin = sourceBackendNode ? pluginMap.get(sourceBackendNode.plugin_id) : null;
-          // Use first export key as sourceHandle, or fallback to 'export'
-          const sourceHandle = sourcePlugin?.exports?.[0]?.key || 'export';
+      // Validate that the source node exists and it's a node ID reference
+      // (For port/secret types, it will be a node ID if it's a connection)
+      if (sourceNodeId && nodeIds.has(sourceNodeId)) {
+        // Find the source node's plugin to get its exports
+        const sourceBackendNode = graphState.nodes.find(n => n.id === sourceNodeId);
 
-          edges.push({
-            id: `${sourceNodeId}-${backendNode.id}-${input.id}`,
-            source: sourceNodeId,
-            sourceHandle,
-            target: backendNode.id,
-            targetHandle: input.id, // Handle ID matches input ID
-            type: 'smoothstep',
-          });
+        // Handle source handle - for external nodes, use the input.id itself as sourceHandle
+        // since external nodes export values using their field names.
+        // For regular plugin nodes, use first export or 'export'.
+        let sourceHandle = 'export';
+        if (sourceBackendNode) {
+          if (sourceBackendNode.plugin_id.startsWith('external://')) {
+            // It's an external node - the handle ID should match the field ID
+            // However, we don't know the field ID here easily, but external nodes 
+            // usually export with the ID of the field.
+            // In most cases, if target is port/secret, it's connected to an external node.
+            // We'll use the target input ID as a guess for the source handle if it matches,
+            // or we'll just use 'export' as a fallback.
+            // Actually, the backend should probably store the source handle too, 
+            // but for now we'll assume the handle ID is what we saved in flowToBackend.
+            // Wait, flowToBackend saves sourceHandle in the edge.
+            // Ah, I see: flowToBackend doesn't save edges explicitly, it saves connections as input values.
+            // So we need to recover the source handle. 
+            // Since we don't store sourceHandle in the backend's `inputs` map, 
+            // and we allow many-to-one, we have to guess or change backend schema.
+            // BUT for external nodes, we usually connect 'field_name' -> 'input_name'.
+            // Let's assume 'export' for now or try to find a matching export.
+            sourceHandle = 'export';
+          } else {
+            const sourcePlugin = pluginMap.get(sourceBackendNode.plugin_id);
+            sourceHandle = sourcePlugin?.exports?.[0]?.key || 'export';
+          }
         }
+
+        edges.push({
+          id: `${sourceNodeId}-${backendNode.id}-${input.id}`,
+          source: sourceNodeId,
+          sourceHandle,
+          target: backendNode.id,
+          targetHandle: input.id, // Handle ID matches input ID
+          type: 'smoothstep',
+        });
       }
     });
   });
@@ -188,15 +212,14 @@ export function flowToBackend(
     } else {
       // Regular nodes - process inputs normally
       node.data.inputs.forEach((input) => {
-        if (input.type === 'plugin') {
-          // For plugin inputs, look up the connected source node
-          const edgeKey = `${node.id}:${input.id}`;
-          const sourceNodeId = edgeLookup.get(edgeKey);
-          if (sourceNodeId) {
-            inputs[input.id] = sourceNodeId;
-          }
-        } else {
-          // For string/secret/port inputs, use the stored value
+        const edgeKey = `${node.id}:${input.id}`;
+        const sourceNodeId = edgeLookup.get(edgeKey);
+
+        if (sourceNodeId) {
+          // If connected, store the source node ID as the value
+          inputs[input.id] = sourceNodeId;
+        } else if (input.type !== 'plugin') {
+          // For non-plugin inputs, if not connected, use the manual value
           const value = node.data.inputValues[input.id];
           if (value !== undefined && value !== '') {
             inputs[input.id] = value;

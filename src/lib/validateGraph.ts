@@ -25,14 +25,6 @@ export function checkNodeTypes(
 ): GraphError[] {
   const errors: GraphError[] = [];
 
-  // Build lookup: target nodeId + targetHandle -> has incoming edge
-  const connectedInputs = new Set<string>();
-  for (const edge of edges) {
-    if (edge.target && edge.targetHandle) {
-      connectedInputs.add(`${edge.target}:${edge.targetHandle}`);
-    }
-  }
-
   for (const node of nodes) {
     // Skip external nodes
     if (node.data.isExternal || node.data.category === 'external') {
@@ -45,36 +37,37 @@ export function checkNodeTypes(
         continue;
       }
 
+      // Check for incoming connections explicitly
+      const isConnected = edges.some(
+        (e) => e.target === node.id && e.targetHandle === input.id
+      );
+
       if (input.type === 'plugin') {
         // Plugin inputs must have an incoming edge
-        const key = `${node.id}:${input.id}`;
-        if (!connectedInputs.has(key)) {
+        if (!isConnected) {
           errors.push({
             type: 'missing_input',
             nodeId: node.id,
             inputId: input.id,
-            message: `Missing required connection: ${input.id}`,
+            message: `Missing required connection: ${input.id.replace(/_/g, ' ')}`,
             severity: 'error',
           });
         }
       } else if (input.type === 'port' || input.type === 'secret') {
         // Port/secret inputs can be satisfied by:
-        // 1. An incoming edge connection (from external node)
-        // 2. A default value
-        // 3. A user-provided value
-        const key = `${node.id}:${input.id}`;
-        const hasConnection = connectedInputs.has(key);
+        // 1. An incoming edge connection
+        // 2. A manual value or default
         const hasDefault = input.default !== undefined && input.default !== '';
         const hasValue =
           node.data.inputValues[input.id] !== undefined &&
           node.data.inputValues[input.id] !== '';
 
-        if (!hasConnection && !hasDefault && !hasValue) {
+        if (!isConnected && !hasDefault && !hasValue) {
           errors.push({
             type: 'missing_input',
             nodeId: node.id,
             inputId: input.id,
-            message: `Missing required value: ${input.id}`,
+            message: `Missing required value: ${input.id.replace(/_/g, ' ')}`,
             severity: 'error',
           });
         }
@@ -139,14 +132,19 @@ export function validateConnection(
   }
 
   const targetInput = targetPlugin.inputs.find(
-    (i) => i.id === targetInputId && i.type === 'plugin'
+    (i: any) => i.id === targetInputId && i.id !== 'INTERNAL_PORT' && !i.generate
   );
   if (!targetInput) {
     return { valid: false, error: 'Invalid target input' };
   }
 
-  if (targetInput.accepts && targetInput.accepts !== sourceNode.plugin_id) {
-    return { valid: false, error: `Input requires ${targetInput.accepts}` };
+  // Same logic as isValidConnection in validation.ts
+  if (targetInput.type === 'plugin') {
+    if (targetInput.accepts && targetInput.accepts !== sourceNode.plugin_id) {
+      return { valid: false, error: `Input requires ${targetInput.accepts}` };
+    }
+  } else if (targetInput.type === 'port' || targetInput.type === 'secret') {
+    // Port/secret inputs can receive from any node
   }
 
   return { valid: true };
