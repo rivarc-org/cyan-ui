@@ -58,13 +58,18 @@ export function checkNodeTypes(
           });
         }
       } else if (input.type === 'port' || input.type === 'secret') {
-        // Port/secret inputs must have a value or default
+        // Port/secret inputs can be satisfied by:
+        // 1. An incoming edge connection (from external node)
+        // 2. A default value
+        // 3. A user-provided value
+        const key = `${node.id}:${input.id}`;
+        const hasConnection = connectedInputs.has(key);
         const hasDefault = input.default !== undefined && input.default !== '';
         const hasValue =
           node.data.inputValues[input.id] !== undefined &&
           node.data.inputValues[input.id] !== '';
 
-        if (!hasDefault && !hasValue) {
+        if (!hasConnection && !hasDefault && !hasValue) {
           errors.push({
             type: 'missing_input',
             nodeId: node.id,

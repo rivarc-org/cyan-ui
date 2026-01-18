@@ -51,19 +51,23 @@ export function isValidConnection(
     return false; // Target handle is not an input
   }
 
-  // Only allow connections to plugin-type inputs
-  if (targetInput.type !== 'plugin') {
-    console.log('[isValidConnection] Rejected: target input is not plugin type', targetInput.type);
-    return false;
+  // For plugin-type inputs, check accepts compatibility
+  if (targetInput.type === 'plugin') {
+    if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
+      console.log('[isValidConnection] Rejected: plugin type mismatch', {
+        accepts: targetInput.accepts,
+        sourcePluginId: sourceNode.data.pluginId
+      });
+      return false; // Plugin type mismatch
+    }
   }
 
-  // If the input expects a specific plugin, check compatibility
-  if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
-    console.log('[isValidConnection] Rejected: plugin type mismatch', {
-      accepts: targetInput.accepts,
-      sourcePluginId: sourceNode.data.pluginId
-    });
-    return false; // Plugin type mismatch
+  // For port/secret inputs, only allow connections from external nodes
+  if (targetInput.type === 'port' || targetInput.type === 'secret') {
+    if (!sourceNode.data.isExternal) {
+      console.log('[isValidConnection] Rejected: port/secret inputs can only receive from external nodes');
+      return false;
+    }
   }
 
   console.log('[isValidConnection] Accepted');

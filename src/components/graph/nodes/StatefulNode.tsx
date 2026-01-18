@@ -11,21 +11,18 @@ function StatefulNodeComponent({ id, data, selected }: StatefulNodeProps) {
   const nodeStatus = useUIStore((s) => s.nodeStatuses.get(id));
   const displayStatus = nodeStatus || data.status;
 
-  // All inputs to display (exclude INTERNAL_PORT)
+  // All inputs to display (exclude INTERNAL_PORT and auto-generated)
   const displayInputs = data.inputs.filter(
-    (i: InputDTO) => i.id !== 'INTERNAL_PORT'
+    (i: InputDTO) => i.id !== 'INTERNAL_PORT' && !i.generate
   );
   const rightOutputs = data.exports.map((e) => ({ id: e.key }));
 
-  // Only plugin-type inputs get connection handles
-  // Use the original index from displayInputs for correct positioning
+  // All display inputs get connection handles (plugin, port, secret)
   const handles = (
     <>
-      {displayInputs.map((input, idx) =>
-        input.type === 'plugin' ? (
-          <InputHandle key={input.id} input={input} index={idx} />
-        ) : null
-      )}
+      {displayInputs.map((input, idx) => (
+        <InputHandle key={input.id} input={input} index={idx} />
+      ))}
       {rightOutputs.map((output, idx) => (
         <ExportHandle key={output.id} id={output.id} index={idx} />
       ))}
