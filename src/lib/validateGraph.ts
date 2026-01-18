@@ -1,4 +1,5 @@
 import type { GraphStateDTO, PluginDetailResponse } from '@/api/types';
+import type { PluginNode, GraphEdge } from '@/types/graph';
 
 export interface GraphError {
   type: 'missing_input' | 'type_mismatch' | 'cycle_detected' | 'missing_plugin';
@@ -6,6 +7,77 @@ export interface GraphError {
   inputId?: string;
   message: string;
   severity: 'error' | 'warning';
+}
+
+/**
+ * Validates React Flow nodes for missing required inputs.
+ * Used for real-time validation in the editor.
+ *
+ * Validation rules:
+ * - plugin inputs: Must have an incoming edge connection
+ * - port/secret inputs: Must have either a default value or user value
+ * - Inputs with generate: true are skipped (auto-generated)
+ * - External nodes are skipped (different validation rules)
+ */
+export function checkNodeTypes(
+  nodes: PluginNode[],
+  edges: GraphEdge[]
+): GraphError[] {
+  const errors: GraphError[] = [];
+
+  // Build lookup: target nodeId + targetHandle -> has incoming edge
+  const connectedInputs = new Set<string>();
+  for (const edge of edges) {
+    if (edge.target && edge.targetHandle) {
+      connectedInputs.add(`${edge.target}:${edge.targetHandle}`);
+    }
+  }
+
+  for (const node of nodes) {
+    // Skip external nodes
+    if (node.data.isExternal || node.data.category === 'external') {
+      continue;
+    }
+
+    for (const input of node.data.inputs) {
+      // Skip auto-generated inputs and internal ports
+      if (input.generate || input.id === 'INTERNAL_PORT') {
+        continue;
+      }
+
+      if (input.type === 'plugin') {
+        // Plugin inputs must have an incoming edge
+        const key = `${node.id}:${input.id}`;
+        if (!connectedInputs.has(key)) {
+          errors.push({
+            type: 'missing_input',
+            nodeId: node.id,
+            inputId: input.id,
+            message: `Missing required connection: ${input.id}`,
+            severity: 'error',
+          });
+        }
+      } else if (input.type === 'port' || input.type === 'secret') {
+        // Port/secret inputs must have a value or default
+        const hasDefault = input.default !== undefined && input.default !== '';
+        const hasValue =
+          node.data.inputValues[input.id] !== undefined &&
+          node.data.inputValues[input.id] !== '';
+
+        if (!hasDefault && !hasValue) {
+          errors.push({
+            type: 'missing_input',
+            nodeId: node.id,
+            inputId: input.id,
+            message: `Missing required value: ${input.id}`,
+            severity: 'error',
+          });
+        }
+      }
+    }
+  }
+
+  return errors;
 }
 
 /**

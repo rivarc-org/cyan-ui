@@ -112,7 +112,19 @@ export const useGraphStore = create<GraphState>()(
       },
 
       onConnect: (connection) => {
-        if (!connection.source || !connection.target) return;
+        // Debug logging
+        console.log('[onConnect] Connection:', {
+          source: connection.source,
+          target: connection.target,
+          sourceHandle: connection.sourceHandle,
+          targetHandle: connection.targetHandle,
+        });
+
+        // Require source, target, and targetHandle for valid connections
+        if (!connection.source || !connection.target || !connection.targetHandle) {
+          console.warn('[onConnect] Invalid connection - missing required fields');
+          return;
+        }
 
         const { edges } = get();
 
@@ -131,14 +143,18 @@ export const useGraphStore = create<GraphState>()(
           source: connection.source,
           sourceHandle: connection.sourceHandle || 'export',
           target: connection.target,
-          targetHandle: connection.targetHandle || '',
+          targetHandle: connection.targetHandle,
           type: 'smoothstep',
         };
+
+        console.log('[onConnect] Creating edge:', newEdge);
 
         set({
           edges: [...filteredEdges, newEdge],
           isDirty: true,
         });
+
+        console.log('[onConnect] Total edges after:', [...filteredEdges, newEdge].length);
       },
 
       addNode: (plugin, position) => {

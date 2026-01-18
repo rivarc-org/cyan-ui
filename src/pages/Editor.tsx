@@ -12,8 +12,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditorControls } from '@/components/graph/EditorControls';
 
 import { useProjectController } from '@/hooks/useProjectController';
+import { useGraphValidation } from '@/hooks/useGraphValidation';
 import { useGraphStore, useTemporalStore } from '@/stores/graphStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useValidationStore } from '@/stores/validationStore';
 import { isValidConnection } from '@/lib/validation';
 import type { GraphEdge } from '@/types/graph';
 
@@ -106,6 +108,10 @@ export function Editor() {
   // ===== UI STORE =====
   const isDeploying = useUIStore((s) => s.isDeploying);
   const deploymentStatus = useUIStore((s) => s.deploymentStatus);
+
+  // ===== VALIDATION =====
+  useGraphValidation();
+  const hasValidationErrors = useValidationStore((s) => s.hasErrors);
 
   // ===== CONNECTION VALIDATION =====
   const handleIsValidConnection = useCallback(
@@ -202,6 +208,7 @@ export function Editor() {
             isDeploying={isDeploying}
             canUndo={canUndo}
             canRedo={canRedo}
+            hasValidationErrors={hasValidationErrors}
             onSave={save}
             onDeploy={deploy}
             onStop={stop}

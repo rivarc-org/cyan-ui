@@ -15,13 +15,17 @@ export function isValidConnection(
 ): boolean {
   const { source, target, targetHandle } = connection;
 
+  console.log('[isValidConnection] Checking:', { source, target, targetHandle });
+
   // Rule 1: No self-connections
   if (source === target) {
+    console.log('[isValidConnection] Rejected: self-connection');
     return false;
   }
 
   // Must have source and target
   if (!source || !target) {
+    console.log('[isValidConnection] Rejected: missing source or target');
     return false;
   }
 
@@ -30,6 +34,7 @@ export function isValidConnection(
   const targetNode = nodes.find((n) => n.id === target);
 
   if (!sourceNode || !targetNode) {
+    console.log('[isValidConnection] Rejected: node not found');
     return false;
   }
 
@@ -39,15 +44,28 @@ export function isValidConnection(
   );
 
   if (!targetInput) {
+    console.log('[isValidConnection] Rejected: target handle not found in inputs', {
+      targetHandle,
+      availableInputs: targetNode.data.inputs.map(i => i.id)
+    });
     return false; // Target handle is not an input
   }
 
-  // If the input expects a specific plugin, check compatibility
-  if (targetInput.type === 'plugin') {
-    if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
-      return false; // Plugin type mismatch
-    }
+  // Only allow connections to plugin-type inputs
+  if (targetInput.type !== 'plugin') {
+    console.log('[isValidConnection] Rejected: target input is not plugin type', targetInput.type);
+    return false;
   }
 
+  // If the input expects a specific plugin, check compatibility
+  if (targetInput.accepts && targetInput.accepts !== sourceNode.data.pluginId) {
+    console.log('[isValidConnection] Rejected: plugin type mismatch', {
+      accepts: targetInput.accepts,
+      sourcePluginId: sourceNode.data.pluginId
+    });
+    return false; // Plugin type mismatch
+  }
+
+  console.log('[isValidConnection] Accepted');
   return true;
 }

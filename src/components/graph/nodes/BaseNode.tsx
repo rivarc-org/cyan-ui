@@ -4,6 +4,7 @@ import { useNodeResize } from '../useNodeResize';
 import { NODE_WIDTH } from '../constants';
 import { NodeHeader } from './NodeHeader';
 import { NodeBody } from './NodeBody';
+import { NodeErrorBanner } from './NodeErrorBanner';
 import type { NodeStatus } from '@/types/graph';
 
 interface BaseNodeProps {
@@ -18,6 +19,7 @@ interface BaseNodeProps {
 }
 
 function BaseNodeComponent({
+  id,
   name,
   category,
   status,
@@ -50,6 +52,7 @@ function BaseNodeComponent({
           onMenuClick={onMenuClick}
         />
         <NodeBody>{children}</NodeBody>
+        <NodeErrorBanner nodeId={id} />
       </div>
     </div>
   );

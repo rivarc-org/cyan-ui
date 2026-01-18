@@ -42,6 +42,7 @@ interface EditorRightPanelProps {
   isDeploying: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  hasValidationErrors?: boolean;
   onSave: () => void;
   onDeploy: () => void;
   onStop: () => void;
@@ -99,12 +100,14 @@ export function EditorRightPanel({
   isDeploying,
   canUndo,
   canRedo,
+  hasValidationErrors = false,
   onSave,
   onDeploy,
   onStop,
   onUndo,
   onRedo,
 }: EditorRightPanelProps) {
+  const deployDisabled = isDeploying || hasValidationErrors;
   return (
     <Toolbar>
       <ToolbarGroup>
@@ -152,12 +155,12 @@ export function EditorRightPanel({
         ) : (
           <ToolbarItem
             onClick={onDeploy}
-            disabled={isDeploying}
+            disabled={deployDisabled}
             className={cn(
-              !isDeploying &&
+              !deployDisabled &&
               'text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400'
             )}
-            title="Deploy"
+            title={hasValidationErrors ? 'Fix validation errors to deploy' : 'Deploy'}
           >
             {isSaving || isDeploying ? (
               <Loader2 className="w-6 h-6 animate-spin" />

@@ -11,15 +11,21 @@ function WorkerNodeComponent({ id, data, selected }: WorkerNodeProps) {
   const nodeStatus = useUIStore((s) => s.nodeStatuses.get(id));
   const displayStatus = nodeStatus || data.status;
 
-  // Filter inputs (exclude INTERNAL_PORT)
-  const leftInputs = data.inputs.filter((i: InputDTO) => i.id !== 'INTERNAL_PORT');
+  // All inputs to display (exclude INTERNAL_PORT)
+  const displayInputs = data.inputs.filter(
+    (i: InputDTO) => i.id !== 'INTERNAL_PORT'
+  );
   const rightOutputs = data.exports.map((e) => ({ id: e.key }));
 
+  // Only plugin-type inputs get connection handles
+  // Use the original index from displayInputs for correct positioning
   const handles = (
     <>
-      {leftInputs.map((input, idx) => (
-        <InputHandle key={input.id} input={input} index={idx} />
-      ))}
+      {displayInputs.map((input, idx) =>
+        input.type === 'plugin' ? (
+          <InputHandle key={input.id} input={input} index={idx} />
+        ) : null
+      )}
       {rightOutputs.map((output, idx) => (
         <ExportHandle key={output.id} id={output.id} index={idx} />
       ))}
@@ -36,7 +42,7 @@ function WorkerNodeComponent({ id, data, selected }: WorkerNodeProps) {
       handles={handles}
       onMenuClick={() => openInspector(id)}
     >
-      {leftInputs.map((input: InputDTO) => (
+      {displayInputs.map((input: InputDTO) => (
         <PluginInputLabel key={input.id} input={input} />
       ))}
     </BaseNode>

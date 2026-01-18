@@ -69,10 +69,16 @@ export function backendToFlow(
 
         // Validate that the source node exists
         if (sourceNodeId && nodeIds.has(sourceNodeId)) {
+          // Find the source node's plugin to get its exports
+          const sourceBackendNode = graphState.nodes.find(n => n.id === sourceNodeId);
+          const sourcePlugin = sourceBackendNode ? pluginMap.get(sourceBackendNode.plugin_id) : null;
+          // Use first export key as sourceHandle, or fallback to 'export'
+          const sourceHandle = sourcePlugin?.exports?.[0]?.key || 'export';
+
           edges.push({
             id: `${sourceNodeId}-${backendNode.id}-${input.id}`,
             source: sourceNodeId,
-            sourceHandle: 'export', // All exports use single handle
+            sourceHandle,
             target: backendNode.id,
             targetHandle: input.id, // Handle ID matches input ID
             type: 'smoothstep',
