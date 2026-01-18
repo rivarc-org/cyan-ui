@@ -72,28 +72,27 @@ export function backendToFlow(
         // Find the source node's plugin to get its exports
         const sourceBackendNode = graphState.nodes.find(n => n.id === sourceNodeId);
 
-        // Handle source handle - for external nodes, use the input.id itself as sourceHandle
-        // since external nodes export values using their field names.
-        // For regular plugin nodes, use first export or 'export'.
+        // Handle source handle resolution
         let sourceHandle = 'export';
         if (sourceBackendNode) {
           if (sourceBackendNode.plugin_id.startsWith('external://')) {
-            // It's an external node - the handle ID should match the field ID
-            // However, we don't know the field ID here easily, but external nodes 
-            // usually export with the ID of the field.
-            // In most cases, if target is port/secret, it's connected to an external node.
-            // We'll use the target input ID as a guess for the source handle if it matches,
-            // or we'll just use 'export' as a fallback.
-            // Actually, the backend should probably store the source handle too, 
-            // but for now we'll assume the handle ID is what we saved in flowToBackend.
-            // Wait, flowToBackend saves sourceHandle in the edge.
-            // Ah, I see: flowToBackend doesn't save edges explicitly, it saves connections as input values.
-            // So we need to recover the source handle. 
-            // Since we don't store sourceHandle in the backend's `inputs` map, 
-            // and we allow many-to-one, we have to guess or change backend schema.
-            // BUT for external nodes, we usually connect 'field_name' -> 'input_name'.
-            // Let's assume 'export' for now or try to find a matching export.
-            sourceHandle = 'export';
+            // For external nodes, handles match field IDs.
+            // Try to find a field ID that matches our target input ID (common case)
+            // or fallback to the first available field.
+            const fieldsJson = sourceBackendNode.inputs[EXTERNAL_FIELDS_KEY];
+            if (fieldsJson) {
+              try {
+                const fieldsMeta = JSON.parse(fieldsJson) as Array<{ id: string }>;
+                const matchingField = fieldsMeta.find((f) => f.id === input.id);
+                if (matchingField) {
+                  sourceHandle = matchingField.id;
+                } else if (fieldsMeta.length > 0) {
+                  sourceHandle = fieldsMeta[0].id;
+                }
+              } catch (e) {
+                sourceHandle = 'export';
+              }
+            }
           } else {
             const sourcePlugin = pluginMap.get(sourceBackendNode.plugin_id);
             sourceHandle = sourcePlugin?.exports?.[0]?.key || 'export';
