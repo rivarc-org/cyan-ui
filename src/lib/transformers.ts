@@ -31,10 +31,10 @@ export function backendToFlow(
       return;
     }
 
-    // Create React Flow node
+    // Create React Flow node - use category as node type for type-safe registry
     const flowNode: PluginNode = {
       id: backendNode.id,
-      type: 'plugin',
+      type: plugin.category, // Maps to nodeTypes registry (worker, stateful, external)
       position: backendNode.position || calculatePosition(index),
       data: {
         pluginId: plugin.id,

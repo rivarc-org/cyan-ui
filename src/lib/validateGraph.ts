@@ -24,9 +24,13 @@ export function checkTypes(
   _plugins: PluginDetailResponse[]
 ): GraphError[] {
   // Placeholder implementation - returns no errors
-  // TODO: Implement full type checking in future phase
+  // TODO: Implement full type checking
+  // TODO: Implement checks to make sure all required inputs are set
   return [];
 }
+
+
+
 
 /**
  * Validates a single connection before it's made.

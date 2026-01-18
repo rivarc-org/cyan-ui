@@ -144,9 +144,10 @@ export const useGraphStore = create<GraphState>()(
       addNode: (plugin, position) => {
         const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+        // Use category as node type for type-safe registry
         const newNode: PluginNode = {
           id: nodeId,
-          type: 'plugin',
+          type: plugin.category, // Maps to nodeTypes registry (worker, stateful, external)
           position: position || { x: 200, y: 200 },
           data: {
             pluginId: plugin.id,
@@ -172,7 +173,7 @@ export const useGraphStore = create<GraphState>()(
 
         const newNode: PluginNode = {
           id: nodeId,
-          type: 'plugin',
+          type: 'external', // External nodes always use 'external' type
           position: position || { x: 200, y: 200 },
           data: {
             pluginId: 'external://custom',

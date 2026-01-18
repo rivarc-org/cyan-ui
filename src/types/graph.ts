@@ -18,12 +18,15 @@ export interface ExternalInputField {
   value: string;
 }
 
+// Node category types - extends backend types with 'external' for custom nodes
+export type NodeCategory = 'worker' | 'stateful' | 'external';
+
 // Custom node data structure for plugin nodes
 // Extends Record<string, unknown> to satisfy React Flow's type requirements
 export interface PluginNodeData extends Record<string, unknown> {
   pluginId: string;
   pluginName: string;
-  category: 'worker' | 'stateful' | 'external';
+  category: NodeCategory;
   inputs: InputDTO[];
   exports: ExportDTO[];
   inputValues: Record<string, string>;
@@ -33,7 +36,7 @@ export interface PluginNodeData extends Record<string, unknown> {
 }
 
 // Plugin node is a React Flow node with our custom data
-export type PluginNode = Node<PluginNodeData, 'plugin'>;
+export type PluginNode = Node<PluginNodeData, NodeCategory>;
 
 // Standard edge type
 export type GraphEdge = Edge;

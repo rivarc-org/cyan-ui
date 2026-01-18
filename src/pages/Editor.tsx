@@ -1,9 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReactFlow, Background, Panel, type Connection, type Node } from '@xyflow/react';
+import { ReactFlow, Background, Panel, type Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { PluginNode } from '@/components/graph/PluginNode';
+import { nodeTypes } from '@/components/graph/nodes';
 import { NodeInspector } from '@/components/graph/NodeInspector';
 import { CommandPalette } from '@/components/dialogs/CommandPalette';
 import { EditorLeftPanel, EditorRightPanel } from '@/components/layout/FloatingBar';
@@ -11,16 +11,11 @@ import { AddNodeMenu } from '@/components/layout/AddNodeMenu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditorControls } from '@/components/graph/EditorControls';
 
-
 import { useProjectController } from '@/hooks/useProjectController';
 import { useGraphStore, useTemporalStore } from '@/stores/graphStore';
 import { useUIStore } from '@/stores/uiStore';
 import { isValidConnection } from '@/lib/validation';
 import type { GraphEdge } from '@/types/graph';
-
-// Use type assertion to avoid strict type checking with React Flow
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const nodeTypes = { plugin: PluginNode } as any;
 
 export function Editor() {
   const navigate = useNavigate();
