@@ -26,6 +26,4 @@ UI sits: the management UI becomes an ordinary node in the graph, reaching the
 runtime through a connection like any other app, instead of a separate tool
 standing outside the system.
 
-## Licence
 
-[LICENCE, or "No licence; kept for reference only."]
