@@ -7,8 +7,8 @@ The visual editor for [CyanStack](https://github.com/rivarc-org/CyanStack), a qu
 AI-assisted prototype that tested deploying self-hosted software by connecting
 services in a graph.
 
-[Optional: a screenshot or short GIF of the editor. It's the fastest way for a
-visitor to understand the idea.]
+<img width="1600" height="970" alt="screenshot" src="https://github.com/user-attachments/assets/6588f9b5-7e53-4079-8c8d-c4d7cdd775a3" />
+
 
 ## What it did
 
