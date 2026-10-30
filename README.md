@@ -14,7 +14,6 @@ services in a graph.
 
 - Shows services as nodes and their connections as edges
 - Lets users add services from a catalogue and connect them
-- [Anything else it did, e.g. editing service settings or showing deployment status]
 
 Built with React, TypeScript and Vite.
 
